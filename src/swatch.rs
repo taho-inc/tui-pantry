@@ -5,17 +5,22 @@ use ratatui::{
     widgets::Widget,
 };
 
-/// Background gradient from #7834F5 (left) to #2E1574 (right).
+/// Background gradient between two RGB endpoints.
 ///
 /// Uses half-block characters (`▀`) for 2x vertical color resolution.
-pub(crate) struct PurpleSwatch;
+/// Brightness dims slightly toward the bottom for depth.
+pub(crate) struct GradientSwatch {
+    left: (f32, f32, f32),
+    right: (f32, f32, f32),
+}
 
-// #7834F5
-const LEFT: (f32, f32, f32) = (120.0, 52.0, 245.0);
-// #2E1574
-const RIGHT: (f32, f32, f32) = (46.0, 21.0, 116.0);
+impl GradientSwatch {
+    pub(crate) fn new(left: (f32, f32, f32), right: (f32, f32, f32)) -> Self {
+        Self { left, right }
+    }
+}
 
-impl Widget for PurpleSwatch {
+impl Widget for GradientSwatch {
     fn render(self, area: Rect, buf: &mut Buffer) {
         if area.width == 0 || area.height == 0 {
             return;
@@ -30,23 +35,20 @@ impl Widget for PurpleSwatch {
 
             for (xi, x) in (area.left()..area.right()).enumerate() {
                 let vx = xi as f32 / w;
-                let fg = purple_at(vx, vy_fg);
-                let bg = purple_at(vx, vy_bg);
+                let fg = color_at(self.left, self.right, vx, vy_fg);
+                let bg = color_at(self.left, self.right, vx, vy_bg);
                 buf[(x, y)].set_char('▀').set_fg(fg).set_bg(bg);
             }
         }
     }
 }
 
-/// Lerp between LEFT and RIGHT along x, dim slightly toward the bottom along y.
-fn purple_at(x: f32, y: f32) -> Color {
-    // y: 1.0 at top (full brightness), 0.0 at bottom (dimmed)
+/// Lerp between left and right along x, dim slightly toward the bottom along y.
+fn color_at(left: (f32, f32, f32), right: (f32, f32, f32), x: f32, y: f32) -> Color {
     let brightness = 0.7 + (y * 0.3);
-
-    let r = lerp(LEFT.0, RIGHT.0, x) * brightness;
-    let g = lerp(LEFT.1, RIGHT.1, x) * brightness;
-    let b = lerp(LEFT.2, RIGHT.2, x) * brightness;
-
+    let r = lerp(left.0, right.0, x) * brightness;
+    let g = lerp(left.1, right.1, x) * brightness;
+    let b = lerp(left.2, right.2, x) * brightness;
     Color::Rgb(r as u8, g as u8, b as u8)
 }
 

@@ -5,6 +5,7 @@ mod nav;
 mod pane;
 pub mod stylesheet;
 mod swatch;
+pub mod theme;
 mod ui;
 
 use std::io;
@@ -58,14 +59,19 @@ pub fn run(ingredients: Vec<Box<dyn Ingredient>>, manifest_dir: &str) -> io::Res
     let styles_content = std::fs::read_to_string(base.join("pantry.toml"))
         .or_else(|_| std::fs::read_to_string(base.join("styles.toml")));
 
-    let mut all = match styles_content {
-        Ok(content) => stylesheet::from_toml(&content),
-        Err(_) => Vec::new(),
+    let (mut all, chrome) = match styles_content {
+        Ok(ref content) => {
+            let table: toml::Table = content
+                .parse()
+                .expect("pantry.toml: invalid TOML");
+            (stylesheet::from_toml(content), theme::PantryTheme::from_toml(&table))
+        }
+        Err(_) => (Vec::new(), theme::PantryTheme::dark()),
     };
     all.extend(ingredients);
 
     let terminal = ratatui::init();
-    let result = app::App::new(all).run(terminal);
+    let result = app::App::new(all, chrome).run(terminal);
     ratatui::restore();
     result
 }

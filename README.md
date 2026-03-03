@@ -34,9 +34,13 @@ tui-pantry = { version = "0.1.0", optional = true }
 
 ### 1. Create `pantry.toml`
 
-Place a `pantry.toml` at your widget crate root. This declares which modules contain ingredients and (optionally) defines your color palette and typography:
+Place a `pantry.toml` at your widget crate root. This declares the harness config, which modules contain ingredients, and (optionally) your color palette and typography:
 
 ```toml
+[config]
+theme = "light"                    # "dark" (default) or "light"
+style_source = "my_crate::styles"  # breadcrumb prefix for stylesheet ingredients
+
 [ingredients]
 source = "my_crate"
 modules = [
@@ -47,22 +51,26 @@ modules = [
 
 ### 2. Write ingredient files
 
-For each module listed, create a colocated `.ingredient.rs` file gated behind the `pantry` feature:
+Each module listed in `pantry.toml` must export `pub mod ingredient` with a `pub fn ingredients()` factory (see [Creating Ingredients](#creating-ingredients) below). Two patterns:
+
+**Inline** — for dedicated pantry crates where the whole crate is the pantry. Ingredient structs live alongside the widget:
+
+```rust
+// widgets/gauge.rs
+pub mod ingredient {
+    pub fn ingredients() -> Vec<Box<dyn tui_pantry::Ingredient>> {
+        vec![Box::new(GaugeDefault), Box::new(GaugeHigh)]
+    }
+}
+```
+
+**Colocated** — for production widget crates that shouldn't unconditionally depend on `tui-pantry`. Separate `.ingredient.rs` files gated behind a feature flag:
 
 ```rust
 // widgets/gauge/mod.rs
 #[cfg(feature = "pantry")]
 #[path = "gauge.ingredient.rs"]
 pub mod ingredient;
-```
-
-Each ingredient file exports a factory (see [Creating Ingredients](#creating-ingredients) below):
-
-```rust
-// widgets/gauge/gauge.ingredient.rs
-pub fn ingredients() -> Vec<Box<dyn tui_pantry::Ingredient>> {
-    vec![Box::new(GaugeDefault), Box::new(GaugeHigh)]
-}
 ```
 
 ### 3. Run
@@ -254,12 +262,24 @@ pantry = ["dep:tui-pantry"]
 pub mod ingredient;
 ```
 
-## Stylesheet
+## Chrome Theme
 
-The Styles tab can be driven entirely from `pantry.toml` — no manual ingredient code required. Add `source`, `[colors]`, and `[typography]` sections alongside your `[ingredients]`:
+Set `theme` under `[config]` to switch the harness chrome between dark and light mode:
 
 ```toml
-source = "my_crate::styles"
+[config]
+theme = "light"   # "dark" (default) or "light"
+```
+
+Dark mode uses a purple gradient background with light text. Light mode uses a lavender gradient with dark text. The accent color (purple) is shared.
+
+## Stylesheet
+
+The Styles tab can be driven entirely from `pantry.toml` — no manual ingredient code required. Add `style_source`, `[colors]`, and `[typography]` sections:
+
+```toml
+[config]
+style_source = "my_crate::styles"
 
 [colors.brand]
 deep_purple = "#2E1574"
@@ -286,7 +306,7 @@ A standalone `styles.toml` is also supported as a fallback if `pantry.toml` is a
 
 Each `[colors.<family>]` table becomes a sidebar group under the Styles tab. Named keys (snake_case) render as individual swatches with a colored block, display name, and hex value. Numeric keys render as a horizontal scale strip showing the gradient across values.
 
-The optional top-level `source` field sets the breadcrumb module path for all generated ingredients (e.g., `my_crate::styles::palette::brand`).
+The optional `style_source` field under `[config]` sets the breadcrumb module path for all generated ingredients (e.g., `my_crate::styles::palette::brand`).
 
 ### Typography
 

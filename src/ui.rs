@@ -11,22 +11,17 @@ use crate::ingredient::PropInfo;
 
 use crate::app::{App, Focus, TAB_LABELS};
 use crate::nav::NavEntry;
-use crate::swatch::PurpleSwatch;
+use crate::swatch::GradientSwatch;
+use crate::theme::PantryTheme;
 
 const SIDEBAR_WIDTH: u16 = 28;
 const BOTTOM_BAR_HEIGHT: u16 = 1;
 const TOP_BAR_HEIGHT: u16 = 1;
 
-// Brand colors duplicated from taho-tui palette for OSS boundary isolation.
-const ACCENT: Color = Color::Rgb(120, 52, 245);
-const PANEL_BG: Color = Color::Rgb(13, 13, 13);
-const CURSOR_BG: Color = Color::Rgb(30, 14, 58);
-const BORDER_DIM: Color = Color::Rgb(61, 61, 61);
-
-const PANEL_STYLE: Style = Style::new().bg(PANEL_BG);
-
 pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer) {
-    PurpleSwatch.render(area, buf);
+    let theme = &app.theme;
+
+    GradientSwatch::new(theme.gradient_left, theme.gradient_right).render(area, buf);
 
     let inner = area.inner(Margin { vertical: 1, horizontal: 2 });
 
@@ -44,32 +39,34 @@ pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer) {
     .areas(main_area);
 
     Clear.render(inner, buf);
-    Block::new().style(PANEL_STYLE).render(inner, buf);
+    Block::new()
+        .style(Style::new().bg(theme.panel_bg))
+        .render(inner, buf);
 
     let focused = app.focus == Focus::Preview;
 
-    render_top_bar(app, top_bar, buf);
-    render_sidebar(app, sidebar, buf);
-    render_preview(app, preview, focused, buf);
-    render_bottom_bar(focused, bottom, buf);
+    render_top_bar(app, theme, top_bar, buf);
+    render_sidebar(app, theme, sidebar, buf);
+    render_preview(app, theme, preview, focused, buf);
+    render_bottom_bar(theme, focused, bottom, buf);
 }
 
-fn render_top_bar(app: &App, area: Rect, buf: &mut Buffer) {
+fn render_top_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
     let app_name = Span::styled(
         " tui-pantry ",
-        Style::new().fg(ACCENT).add_modifier(Modifier::BOLD),
+        Style::new().fg(theme.accent).add_modifier(Modifier::BOLD),
     );
 
     let mut tab_spans: Vec<Span> = Vec::new();
     for (i, label) in TAB_LABELS.iter().enumerate() {
         if i > 0 {
-            tab_spans.push(Span::styled(" · ", Style::new().fg(BORDER_DIM)));
+            tab_spans.push(Span::styled(" · ", Style::new().fg(theme.border)));
         }
 
         let style = if i == app.active_tab {
-            Style::new().fg(ACCENT).add_modifier(Modifier::BOLD)
+            Style::new().fg(theme.accent).add_modifier(Modifier::BOLD)
         } else {
-            Style::new().fg(Color::DarkGray)
+            Style::new().fg(theme.text_dim)
         };
 
         tab_spans.push(Span::styled(*label, style));
@@ -88,10 +85,10 @@ fn render_top_bar(app: &App, area: Rect, buf: &mut Buffer) {
     buf.set_line(tabs_area.x, tabs_area.y, &Line::from(tab_spans), tabs_area.width);
 }
 
-fn render_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
+fn render_sidebar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
     let block = Block::default()
         .borders(Borders::RIGHT)
-        .border_style(Style::default().fg(Color::DarkGray));
+        .border_style(Style::default().fg(theme.text_dim));
 
     let inner = block.inner(area);
     block.render(area, buf);
@@ -106,7 +103,7 @@ fn render_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
     let header_line = Line::from(vec![
         Span::styled(
             format!(" {tab_label} "),
-            Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.text_dim).add_modifier(Modifier::BOLD),
         ),
     ]);
 
@@ -114,7 +111,7 @@ fn render_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
 
     if nav.is_empty() {
         if inner.height > 2 {
-            let empty_msg = Line::from(Span::styled("  (empty)", Style::default().fg(Color::DarkGray)));
+            let empty_msg = Line::from(Span::styled("  (empty)", Style::default().fg(theme.text_dim)));
             buf.set_line(inner.x, inner.y + 2, &empty_msg, inner.width);
         }
         return;
@@ -136,20 +133,20 @@ fn render_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
             NavEntry::Group { name, expanded } => {
                 let caret = if *expanded { "▼" } else { "▶" };
                 let style = if is_cursor {
-                    Style::default().fg(ACCENT).bg(CURSOR_BG)
+                    Style::default().fg(theme.accent).bg(theme.cursor_bg)
                 } else {
-                    Style::default().fg(Color::White)
+                    Style::default().fg(theme.text)
                 };
 
                 let line = Line::from(vec![
-                    Span::styled(format!(" {caret} "), Style::default().fg(Color::DarkGray)),
+                    Span::styled(format!(" {caret} "), Style::default().fg(theme.text_dim)),
                     Span::styled(name.as_str(), style),
                 ]);
 
                 buf.set_line(inner.x, y, &line, inner.width);
 
                 if is_cursor {
-                    fill_bg(buf, inner.x, y, inner.width, CURSOR_BG);
+                    fill_bg(buf, inner.x, y, inner.width, theme.cursor_bg);
                 }
             }
 
@@ -158,17 +155,17 @@ fn render_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
                 let is_selected = selected_ingredient == Some(*ingredient_idx) && is_cursor;
 
                 let style = if is_selected {
-                    Style::default().fg(ACCENT)
+                    Style::default().fg(theme.accent)
                 } else if is_cursor {
-                    Style::default().fg(Color::White).bg(CURSOR_BG)
+                    Style::default().fg(theme.text).bg(theme.cursor_bg)
                 } else {
-                    Style::default().fg(Color::DarkGray)
+                    Style::default().fg(theme.text_dim)
                 };
 
                 let marker_style = if is_selected {
-                    Style::default().fg(ACCENT)
+                    Style::default().fg(theme.accent)
                 } else {
-                    Style::default().fg(BORDER_DIM)
+                    Style::default().fg(theme.border)
                 };
 
                 let line = Line::from(vec![
@@ -179,14 +176,14 @@ fn render_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
                 buf.set_line(inner.x, y, &line, inner.width);
 
                 if is_cursor {
-                    fill_bg(buf, inner.x, y, inner.width, CURSOR_BG);
+                    fill_bg(buf, inner.x, y, inner.width, theme.cursor_bg);
                 }
             }
         }
     }
 }
 
-fn render_preview(app: &App, area: Rect, focused: bool, buf: &mut Buffer) {
+fn render_preview(app: &App, theme: &PantryTheme, area: Rect, focused: bool, buf: &mut Buffer) {
     if let Some(idx) = app.nav().selected_ingredient() {
         let ingredient = &app.ingredients[idx];
 
@@ -201,11 +198,11 @@ fn render_preview(app: &App, area: Rect, focused: bool, buf: &mut Buffer) {
         .areas(area);
 
         let breadcrumb = Line::from(vec![
-            Span::styled(format!(" {} ", ingredient.group()), Style::default().fg(Color::DarkGray)),
-            Span::styled("› ", Style::default().fg(BORDER_DIM)),
-            Span::styled(ingredient.name(), Style::default().fg(Color::White)),
+            Span::styled(format!(" {} ", ingredient.group()), Style::default().fg(theme.text_dim)),
+            Span::styled("› ", Style::default().fg(theme.border)),
+            Span::styled(ingredient.name(), Style::default().fg(theme.text)),
             Span::raw("  "),
-            Span::styled(ingredient.source(), Style::default().fg(Color::DarkGray)),
+            Span::styled(ingredient.source(), Style::default().fg(theme.text_dim)),
         ]);
 
         buf.set_line(header_area.x, header_area.y, &breadcrumb, header_area.width);
@@ -220,18 +217,18 @@ fn render_preview(app: &App, area: Rect, focused: bool, buf: &mut Buffer) {
             ])
             .areas(body);
 
-            let pane = Pane::new(ingredient.name(), ingredient.as_ref(), focused);
+            let pane = Pane::new(ingredient.name(), ingredient.as_ref(), focused, theme);
             pane.render(canvas, buf);
-            render_doc_panel(description, props, doc_area, buf);
+            render_doc_panel(theme, description, props, doc_area, buf);
         } else {
-            let pane = Pane::new(ingredient.name(), ingredient.as_ref(), focused);
+            let pane = Pane::new(ingredient.name(), ingredient.as_ref(), focused, theme);
             pane.render(body, buf);
         }
     } else if app.nav().is_empty() && TAB_LABELS[app.active_tab] == "Styles" {
-        render_stylesheet_prompt(area, buf);
+        render_stylesheet_prompt(theme, area, buf);
     } else {
         let empty = Paragraph::new("Select an ingredient from the sidebar")
-            .style(Style::default().fg(Color::DarkGray));
+            .style(Style::default().fg(theme.text_dim));
 
         empty.render(area, buf);
     }
@@ -248,9 +245,15 @@ fn doc_panel_height(description: &str, props: &[PropInfo]) -> u16 {
     1 + desc_lines + props_lines
 }
 
-fn render_doc_panel(description: &str, props: &[PropInfo], area: Rect, buf: &mut Buffer) {
+fn render_doc_panel(
+    theme: &PantryTheme,
+    description: &str,
+    props: &[PropInfo],
+    area: Rect,
+    buf: &mut Buffer,
+) {
     let accent = Style::default().fg(Color::Rgb(232, 164, 90));
-    let dim = Style::default().fg(Color::DarkGray);
+    let dim = Style::default().fg(theme.text_dim);
     let text = Style::default().fg(Color::Gray);
 
     // Separator line
@@ -286,7 +289,7 @@ fn render_doc_panel(description: &str, props: &[PropInfo], area: Rect, buf: &mut
                 break;
             }
             let line = Line::from(vec![
-                Span::styled(format!("{:<name_w$}", prop.name), Style::default().fg(Color::White)),
+                Span::styled(format!("{:<name_w$}", prop.name), Style::default().fg(theme.text)),
                 Span::styled("  ", dim),
                 Span::styled(format!("{:<ty_w$}", prop.ty), Style::default().fg(Color::Rgb(140, 140, 200))),
                 Span::styled("  ", dim),
@@ -298,9 +301,9 @@ fn render_doc_panel(description: &str, props: &[PropInfo], area: Rect, buf: &mut
     }
 }
 
-fn render_bottom_bar(focused: bool, area: Rect, buf: &mut Buffer) {
-    let accent = Style::default().fg(ACCENT);
-    let dim = Style::default().fg(Color::DarkGray);
+fn render_bottom_bar(theme: &PantryTheme, focused: bool, area: Rect, buf: &mut Buffer) {
+    let accent = Style::default().fg(theme.accent);
+    let dim = Style::default().fg(theme.text_dim);
 
     let hints = if focused {
         Line::from(vec![
@@ -335,10 +338,10 @@ fn fill_bg(buf: &mut Buffer, x: u16, y: u16, width: u16, color: Color) {
     }
 }
 
-fn render_stylesheet_prompt(area: Rect, buf: &mut Buffer) {
-    let dim = Style::new().fg(Color::DarkGray);
+fn render_stylesheet_prompt(theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
+    let dim = Style::new().fg(theme.text_dim);
     let text = Style::new().fg(Color::Gray);
-    let code = Style::new().fg(Color::White);
+    let code = Style::new().fg(theme.text);
 
     let lines: &[Line] = &[
         Line::from(vec![

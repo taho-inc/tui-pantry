@@ -18,10 +18,12 @@ Widget crates (e.g. `taho-tui`) keep `pantry.toml` at their crate root and coloc
 
 ## `pantry.toml`
 
-Single config file at the widget crate root declaring both styles and widget ingredients:
+Single config file at the widget crate root declaring harness config, styles, and widget ingredients:
 
 ```toml
-source = "my_crate::styles"
+[config]
+theme = "light"                        # "dark" (default) or "light"
+style_source = "my_crate::styles"      # breadcrumb prefix for color/typography ingredients
 
 [colors.brand]
 deep_purple = "#2E1574"
@@ -38,7 +40,9 @@ modules = [
 ]
 ```
 
-**Styles** are parsed at runtime by `stylesheet::from_toml` — color swatches and typography samples appear in the Styles tab. The optional top-level `source` field annotates breadcrumbs with the originating module path.
+**Config** (`[config]`) is parsed at runtime. `theme` selects chrome colors (`PantryTheme::dark()` or `PantryTheme::light()`). `style_source` annotates breadcrumbs with the originating module path.
+
+**Styles** (`[colors.*]`, `[typography]`) are parsed at runtime by `stylesheet::from_toml` — color swatches and typography samples appear in the Styles tab.
 
 **Ingredients** are evaluated at compile time by the `pantry_ingredients!()` proc macro. Each module entry expands to `{source}::{module}::ingredient::ingredients()`. Multiple source groups are supported via `[[ingredients]]` array-of-tables syntax.
 
@@ -46,20 +50,29 @@ modules = [
 
 ## Ingredient Convention
 
-Each widget ships colocated `.ingredient.rs` files gated behind `#[cfg(feature = "pantry")]`:
+Each module listed in `pantry.toml` must export `pub mod ingredient` with a `pub fn ingredients() -> Vec<Box<dyn Ingredient>>`. Two patterns:
+
+**Inline** (dedicated pantry crates like `example-pantry`) — ingredient structs live alongside the widget in a single file:
 
 ```rust
-// in widget's mod.rs
+// widgets/barchart.rs
+pub mod ingredient {
+    pub fn ingredients() -> Vec<Box<dyn Ingredient>> { vec![...] }
+}
+```
+
+**Colocated** (production widget crates like `taho-tui`) — separate `.ingredient.rs` files gated behind a feature flag so the widget crate doesn't unconditionally depend on `tui-pantry`:
+
+```rust
+// widgets/node_table/mod.rs
 #[cfg(feature = "pantry")]
 #[path = "node_table.ingredient.rs"]
 pub mod ingredient;
 ```
 
-Each ingredient file exports `pub fn ingredients() -> Vec<Box<dyn Ingredient>>`.
-
 The `Ingredient` trait provides optional `description()` and `props()` methods for self-documenting widgets. When present, the harness renders a doc panel below the preview showing the widget's purpose and configurable properties.
 
-Adding a new widget requires two touches: the `#[path]` declaration in `mod.rs` and a module entry in `pantry.toml`.
+Adding a new widget requires two touches: the `pub mod ingredient` declaration and a module entry in `pantry.toml`.
 
 ## Running
 
@@ -90,8 +103,9 @@ cargo watch -w taho-tui -x "pantry"
 - [src/app.rs](src/app.rs) — event loop and key dispatch
 - [src/nav.rs](src/nav.rs) — `NavTree`: grouped entries, expand/collapse, cursor, viewport scrolling
 - [src/ui.rs](src/ui.rs) — two-pane layout, top bar tabs, sidebar, preview, bottom bar
+- [src/theme.rs](src/theme.rs) — `PantryTheme`: dark/light chrome palettes, parsed from `[config]`
 - [src/pane.rs](src/pane.rs) — `Pane` widget: titled border delegating to an ingredient
-- [src/swatch.rs](src/swatch.rs) — purple gradient background
+- [src/swatch.rs](src/swatch.rs) — `GradientSwatch`: parameterized background gradient
 - [examples/example-pantry/](examples/example-pantry/) — reference pantry with ratatui stock widgets and Catppuccin Mocha styles
 
 ## Top-Bar Tabs
@@ -106,6 +120,5 @@ Three tabs organize ingredient types:
 
 ## Planned
 
-- Themable pantry chrome (`PantryTheme` config passed to `run()`) for OSS consumers
 - Alt-key accelerators for direct navigation jumps (Phase 3 in [phased plan](docs/tui-pantry-phased-plan.md))
 - `.pantry-state` persistence across restarts

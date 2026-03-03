@@ -1,4 +1,6 @@
-source = "example_pantry::styles::palette"
+[config]
+theme = "light"
+style_source = "example_pantry::styles::palette"
 
 [colors.accent]
 rosewater = "#f5e0dc"

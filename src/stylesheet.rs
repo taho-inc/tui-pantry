@@ -70,7 +70,9 @@ pub fn from_toml(toml_str: &str) -> Vec<Box<dyn Ingredient>> {
         .expect("stylesheet: invalid TOML");
 
     let source = table
-        .get("source")
+        .get("config")
+        .and_then(|v| v.as_table())
+        .and_then(|c| c.get("style_source"))
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_owned();

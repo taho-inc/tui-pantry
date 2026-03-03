@@ -9,6 +9,7 @@ use ratatui::{
 use crate::Ingredient;
 
 use crate::nav::NavTree;
+use crate::theme::PantryTheme;
 use crate::ui;
 
 pub(crate) const TAB_LABELS: &[&str] = &["Widgets", "Views", "Styles"];
@@ -21,6 +22,7 @@ pub(crate) enum Focus {
 
 pub struct App {
     pub ingredients: Vec<Box<dyn Ingredient>>,
+    pub(crate) theme: PantryTheme,
     pub(crate) active_tab: usize,
     pub(crate) navs: Vec<NavTree>,
     pub(crate) focus: Focus,
@@ -28,7 +30,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(ingredients: Vec<Box<dyn Ingredient>>) -> Self {
+    pub fn new(ingredients: Vec<Box<dyn Ingredient>>, theme: PantryTheme) -> Self {
         let navs: Vec<NavTree> = TAB_LABELS
             .iter()
             .map(|tab| NavTree::build(&ingredients, tab))
@@ -36,6 +38,7 @@ impl App {
 
         Self {
             ingredients,
+            theme,
             active_tab: 0,
             navs,
             focus: Focus::Sidebar,

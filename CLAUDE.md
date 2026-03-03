@@ -5,13 +5,16 @@ Storybook-like harness for developing ratatui widgets in isolation. Top-bar tabs
 ## Crate Structure
 
 ```
-tui-pantry (lib + cargo-pantry bin)  ← generic harness + cargo subcommand (OSS-extractable)
-  └── tui-pantry-macros              ← proc macro (re-exported, invisible to consumers)
+tui-pantry (lib + cargo-pantry bin)  ← generic harness + cargo subcommand
+  ├── tui-pantry-macros              ← proc macro (re-exported, invisible to consumers)
+  └── examples/example-pantry        ← ratatui stock widget showcase (Catppuccin Mocha)
 ```
 
 `tui-pantry` owns the `Ingredient` trait, nav tree, app loop, and all rendering chrome. It also ships the `cargo-pantry` binary — a cargo subcommand that auto-creates `examples/pantry.rs` and delegates to `cargo run --example pantry --features pantry`. `tui-pantry-macros` provides the `pantry_ingredients!()` proc macro that reads `pantry.toml` at compile time.
 
 Widget crates (e.g. `taho-tui`) keep `pantry.toml` at their crate root and colocate `.ingredient.rs` files behind `#[cfg(feature = "pantry")]`.
+
+`example-pantry` is a reference implementation showing how to stand up a pantry from scratch using ratatui's built-in widgets (Block, Paragraph, List, Table, Tabs, Gauge, BarChart, Sparkline) with a complete Catppuccin Mocha color system. Run with `cargo run -p example-pantry`.
 
 ## `pantry.toml`
 
@@ -61,7 +64,8 @@ Adding a new widget requires two touches: the `#[path]` declaration in `mod.rs` 
 ## Running
 
 ```bash
-cargo pantry        # workspace alias (runs taho-tui example)
+cargo pantry                 # workspace alias (runs taho-tui example)
+cargo run -p example-pantry  # ratatui stock widget showcase
 ```
 
 External users: `cargo install tui-pantry` then `cargo pantry` from their widget crate root.
@@ -88,6 +92,7 @@ cargo watch -w taho-tui -x "pantry"
 - [src/ui.rs](src/ui.rs) — two-pane layout, top bar tabs, sidebar, preview, bottom bar
 - [src/pane.rs](src/pane.rs) — `Pane` widget: titled border delegating to an ingredient
 - [src/swatch.rs](src/swatch.rs) — purple gradient background
+- [examples/example-pantry/](examples/example-pantry/) — reference pantry with ratatui stock widgets and Catppuccin Mocha styles
 
 ## Top-Bar Tabs
 
@@ -104,4 +109,3 @@ Three tabs organize ingredient types:
 - Themable pantry chrome (`PantryTheme` config passed to `run()`) for OSS consumers
 - Alt-key accelerators for direct navigation jumps (Phase 3 in [phased plan](docs/tui-pantry-phased-plan.md))
 - `.pantry-state` persistence across restarts
-- Additional widgets: JobQueue, MeshTopology, StatusBar, LogStream

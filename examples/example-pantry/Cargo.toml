@@ -1,0 +1,10 @@
+[package]
+name = "example-pantry"
+description = "Ratatui stock widget showcase for tui-pantry"
+publish = false
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+ratatui.workspace = true
+tui-pantry.workspace = true

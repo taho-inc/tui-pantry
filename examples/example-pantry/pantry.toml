@@ -1,0 +1,53 @@
+source = "example_pantry::styles::palette"
+
+[colors.accent]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+
+[colors.surface]
+crust = "#11111b"
+mantle = "#181825"
+base = "#1e1e2e"
+surface_0 = "#313244"
+surface_1 = "#45475a"
+surface_2 = "#585b70"
+overlay_0 = "#6c7086"
+overlay_1 = "#7f849c"
+overlay_2 = "#9399b2"
+
+[colors.text]
+text = "#cdd6f4"
+subtext_1 = "#bac2de"
+subtext_0 = "#a6adc8"
+
+[typography]
+text = { color = "#cdd6f4", description = "Primary content — headings, body, values" }
+subtext_1 = { color = "#bac2de", description = "Secondary — labels, timestamps, metadata" }
+subtext_0 = { color = "#a6adc8", description = "Tertiary — placeholders, hints, carets" }
+
+[ingredients]
+source = "example_pantry"
+modules = [
+    "widgets::block",
+    "widgets::paragraph",
+    "widgets::list",
+    "widgets::table",
+    "widgets::tabs",
+    "widgets::gauge",
+    "widgets::barchart",
+    "widgets::sparkline",
+    "views::dashboard",
+    "views::monitoring",
+]

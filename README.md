@@ -2,6 +2,16 @@
 
 Storybook-like harness for previewing [ratatui](https://ratatui.rs) widgets in isolation. Generic library with zero application dependencies.
 
+## Quick Start — Example Pantry
+
+Run the bundled example to see tui-pantry in action with ratatui's stock widgets themed in [Catppuccin Mocha](https://catppuccin.com/):
+
+```bash
+cargo run -p example-pantry
+```
+
+The example showcases Block, Paragraph, List, Table, Tabs, Gauge, BarChart, and Sparkline with a complete color system and typography. Browse the [example source](examples/example-pantry/) for the full pattern.
+
 ## Installation
 
 Install the cargo subcommand:

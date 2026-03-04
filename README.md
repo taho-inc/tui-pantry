@@ -353,3 +353,11 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | `1` `2` `3` / `Tab` | Switch tabs | — |
 | `Esc` | Quit | Return to sidebar |
 | `q` | Quit | — |
+
+## Mouse
+
+| Action | Behavior |
+|--------|----------|
+| Click sidebar entry | Navigate to entry and focus sidebar |
+| Click tab label | Switch to that tab |
+| Scroll wheel in sidebar | Navigate up/down |

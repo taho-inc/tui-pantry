@@ -42,6 +42,35 @@ impl Regions {
         .areas(main_area);
         Self { top_bar, sidebar, preview, bottom_bar }
     }
+
+    /// Which tab index (if any) is at the given terminal coordinate.
+    pub fn tab_at(&self, col: u16, row: u16) -> Option<usize> {
+        if row != self.top_bar.y {
+            return None;
+        }
+
+        let label_widths: Vec<u16> = TAB_LABELS.iter().map(|l| l.len() as u16).collect();
+        let separator: u16 = 3; // " · "
+        let total: u16 =
+            label_widths.iter().sum::<u16>() + separator * (TAB_LABELS.len() as u16 - 1) + 1;
+
+        let tabs_x = self.top_bar.x + self.top_bar.width - total;
+        if col < tabs_x {
+            return None;
+        }
+
+        let mut x = tabs_x;
+        for (i, &w) in label_widths.iter().enumerate() {
+            if i > 0 {
+                x += separator;
+            }
+            if col >= x && col < x + w {
+                return Some(i);
+            }
+            x += w;
+        }
+        None
+    }
 }
 
 pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer, regions: &Regions) {

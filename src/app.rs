@@ -2,7 +2,11 @@ use std::io;
 use std::time::Duration;
 
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
+    crossterm::event::{
+        self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEvent,
+        MouseEventKind,
+    },
+    layout::Position,
     DefaultTerminal,
 };
 
@@ -64,11 +68,17 @@ impl App {
                 ui::render(&self, frame.area(), frame.buffer_mut(), &regions);
             })?;
 
-            if event::poll(Duration::from_millis(33))?
-                && let Event::Key(key) = event::read()?
-                && key.kind == KeyEventKind::Press
-            {
-                self.handle_key(key.code, key.modifiers);
+            // ~30 fps poll; handles both keyboard and mouse input
+            if event::poll(Duration::from_millis(33))? {
+                match event::read()? {
+                    Event::Key(key) if key.kind == KeyEventKind::Press => {
+                        self.handle_key(key.code, key.modifiers);
+                    }
+                    Event::Mouse(mouse) => {
+                        self.handle_mouse(mouse, &regions);
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -118,6 +128,35 @@ impl App {
         if let Some(idx) = self.nav().selected_ingredient() {
             self.ingredients[idx].handle_key(code);
         }
+    }
+
+    /// Dispatch mouse events: sidebar clicks, tab clicks, scroll wheel.
+    fn handle_mouse(&mut self, mouse: MouseEvent, regions: &ui::Regions) {
+        let pos = Position::new(mouse.column, mouse.row);
+        match mouse.kind {
+            MouseEventKind::Down(MouseButton::Left) => {
+                if regions.sidebar.contains(pos) {
+                    self.click_sidebar(mouse.row, regions);
+                } else if let Some(tab) = regions.tab_at(mouse.column, mouse.row) {
+                    self.active_tab = tab;
+                }
+            }
+            MouseEventKind::ScrollUp if regions.sidebar.contains(pos) => {
+                self.nav_mut().move_up();
+            }
+            MouseEventKind::ScrollDown if regions.sidebar.contains(pos) => {
+                self.nav_mut().move_down();
+            }
+            _ => {}
+        }
+    }
+
+    /// Map a sidebar click row to a nav entry. Always returns focus to sidebar.
+    fn click_sidebar(&mut self, row: u16, regions: &ui::Regions) {
+        self.focus = Focus::Sidebar;
+        let entry_row = row.saturating_sub(regions.sidebar.y + 1) as usize;
+        let visible_index = entry_row + self.nav().scroll_offset;
+        self.nav_mut().move_to(visible_index);
     }
 
     /// Enter focuses interactive variants; toggles groups otherwise.

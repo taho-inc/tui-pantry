@@ -71,7 +71,9 @@ pub fn run(ingredients: Vec<Box<dyn Ingredient>>, manifest_dir: &str) -> io::Res
     all.extend(ingredients);
 
     let terminal = ratatui::init();
+    ratatui::crossterm::execute!(std::io::stdout(), ratatui::crossterm::event::EnableMouseCapture)?;
     let result = app::App::new(all, chrome).run(terminal);
+    let _ = ratatui::crossterm::execute!(std::io::stdout(), ratatui::crossterm::event::DisableMouseCapture);
     ratatui::restore();
     result
 }

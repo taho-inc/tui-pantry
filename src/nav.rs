@@ -109,6 +109,12 @@ impl NavTree {
         }
     }
 
+    /// Jump cursor directly to a visible entry index, clamped to valid range.
+    pub fn move_to(&mut self, index: usize) {
+        let max = self.visible().len().saturating_sub(1);
+        self.cursor = index.min(max);
+    }
+
     /// Toggle expand/collapse if cursor is on a group. Expand + enter first child if collapsing.
     pub fn toggle_or_enter(&mut self) {
         let entries = self.visible();

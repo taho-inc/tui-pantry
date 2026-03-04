@@ -83,7 +83,7 @@ cargo run -p example-pantry  # ratatui stock widget showcase
 
 External users: `cargo install tui-pantry` then `cargo pantry` from their widget crate root.
 
-Keys: `j/k` or `↑/↓` navigate, `h/l` or `←/→` collapse/expand, `Enter` toggle or enter preview, `1-3` direct tab access, `Tab`/`Shift-Tab` cycle tabs, `q` quit.
+Keys: `j/k` or `↑/↓` navigate, `h/l` or `←/→` collapse/expand, `Enter` toggle or enter preview, `1-3` direct tab access, `Tab`/`Shift-Tab` cycle tabs, `q` quit. Mouse: click sidebar entries to navigate, click tabs to switch, scroll wheel in sidebar to move up/down.
 
 ## Development
 

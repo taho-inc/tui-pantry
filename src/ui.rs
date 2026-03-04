@@ -18,26 +18,38 @@ const SIDEBAR_WIDTH: u16 = 28;
 const BOTTOM_BAR_HEIGHT: u16 = 1;
 const TOP_BAR_HEIGHT: u16 = 1;
 
-pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer) {
+/// Hit-testable layout regions, computed once from terminal size.
+pub(crate) struct Regions {
+    pub top_bar: Rect,
+    pub sidebar: Rect,
+    pub preview: Rect,
+    pub bottom_bar: Rect,
+}
+
+impl Regions {
+    pub fn from_terminal(area: Rect) -> Self {
+        let inner = area.inner(Margin { vertical: 1, horizontal: 2 });
+        let [top_bar, main_area, bottom_bar] = Layout::vertical([
+            Constraint::Length(TOP_BAR_HEIGHT),
+            Constraint::Min(0),
+            Constraint::Length(BOTTOM_BAR_HEIGHT),
+        ])
+        .areas(inner);
+        let [sidebar, preview] = Layout::horizontal([
+            Constraint::Length(SIDEBAR_WIDTH),
+            Constraint::Min(0),
+        ])
+        .areas(main_area);
+        Self { top_bar, sidebar, preview, bottom_bar }
+    }
+}
+
+pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer, regions: &Regions) {
     let theme = &app.theme;
 
     GradientSwatch::new(theme.gradient_left, theme.gradient_right).render(area, buf);
 
     let inner = area.inner(Margin { vertical: 1, horizontal: 2 });
-
-    let [top_bar, main_area, bottom] = Layout::vertical([
-        Constraint::Length(TOP_BAR_HEIGHT),
-        Constraint::Min(0),
-        Constraint::Length(BOTTOM_BAR_HEIGHT),
-    ])
-    .areas(inner);
-
-    let [sidebar, preview] = Layout::horizontal([
-        Constraint::Length(SIDEBAR_WIDTH),
-        Constraint::Min(0),
-    ])
-    .areas(main_area);
-
     Clear.render(inner, buf);
     Block::new()
         .style(Style::new().bg(theme.panel_bg))
@@ -45,10 +57,10 @@ pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer) {
 
     let focused = app.focus == Focus::Preview;
 
-    render_top_bar(app, theme, top_bar, buf);
-    render_sidebar(app, theme, sidebar, buf);
-    render_preview(app, theme, preview, focused, buf);
-    render_bottom_bar(theme, focused, bottom, buf);
+    render_top_bar(app, theme, regions.top_bar, buf);
+    render_sidebar(app, theme, regions.sidebar, buf);
+    render_preview(app, theme, regions.preview, focused, buf);
+    render_bottom_bar(theme, focused, regions.bottom_bar, buf);
 }
 
 fn render_top_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) {

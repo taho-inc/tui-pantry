@@ -56,11 +56,12 @@ impl App {
 
     pub fn run(mut self, mut terminal: DefaultTerminal) -> io::Result<()> {
         while self.running {
-            let height = terminal.size()?.height;
-            self.nav_mut().scroll_into_view(sidebar_viewport_height(height));
+            let regions = ui::Regions::from_terminal(terminal.size()?.into());
+            self.nav_mut()
+                .scroll_into_view(regions.sidebar.height.saturating_sub(1) as usize);
 
             terminal.draw(|frame| {
-                ui::render(&self, frame.area(), frame.buffer_mut());
+                ui::render(&self, frame.area(), frame.buffer_mut(), &regions);
             })?;
 
             if event::poll(Duration::from_millis(33))?
@@ -129,10 +130,4 @@ impl App {
         }
         self.nav_mut().toggle_or_enter();
     }
-}
-
-/// Sidebar entry rows available after margins, bottom bar, top bar, and header.
-fn sidebar_viewport_height(terminal_height: u16) -> usize {
-    // vertical margin(1+1) + bottom_bar(1) + top_bar(1) + header(1) = 5
-    terminal_height.saturating_sub(5) as usize
 }

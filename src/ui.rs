@@ -18,6 +18,16 @@ const SIDEBAR_WIDTH: u16 = 28;
 const BOTTOM_BAR_HEIGHT: u16 = 1;
 const TOP_BAR_HEIGHT: u16 = 1;
 
+/// Width of the " · " separator between tab labels.
+const TAB_SEPARATOR_WIDTH: u16 = 3;
+
+/// Total width of the tab strip (labels + separators + trailing space).
+fn tabs_total_width() -> u16 {
+    let labels: u16 = TAB_LABELS.iter().map(|l| l.len() as u16).sum();
+    labels + TAB_SEPARATOR_WIDTH * (TAB_LABELS.len() as u16 - 1) + 1
+}
+
+
 /// Hit-testable layout regions, computed once from terminal size.
 pub(crate) struct Regions {
     pub top_bar: Rect,
@@ -49,21 +59,17 @@ impl Regions {
             return None;
         }
 
-        let label_widths: Vec<u16> = TAB_LABELS.iter().map(|l| l.len() as u16).collect();
-        let separator: u16 = 3; // " · "
-        let total: u16 =
-            label_widths.iter().sum::<u16>() + separator * (TAB_LABELS.len() as u16 - 1) + 1;
-
-        let tabs_x = self.top_bar.x + self.top_bar.width - total;
+        let tabs_x = self.top_bar.x + self.top_bar.width - tabs_total_width();
         if col < tabs_x {
             return None;
         }
 
         let mut x = tabs_x;
-        for (i, &w) in label_widths.iter().enumerate() {
+        for (i, label) in TAB_LABELS.iter().enumerate() {
             if i > 0 {
-                x += separator;
+                x += TAB_SEPARATOR_WIDTH;
             }
+            let w = label.len() as u16;
             if col >= x && col < x + w {
                 return Some(i);
             }
@@ -123,11 +129,9 @@ fn render_top_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) 
     }
     tab_spans.push(Span::raw(" "));
 
-    let tabs_width: u16 = tab_spans.iter().map(|s| s.width() as u16).sum();
-
     let [title_area, tabs_area] = Layout::horizontal([
         Constraint::Min(0),
-        Constraint::Length(tabs_width),
+        Constraint::Length(tabs_total_width()),
     ])
     .areas(area);
 
@@ -356,14 +360,14 @@ fn render_bottom_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffe
     let dim = Style::default().fg(theme.text_dim);
 
     let hints = match app.focus {
-        Focus::Preview => Line::from(vec![
+        Focus::Preview => vec![
             Span::styled(" ↑↓", accent),
             Span::styled(" navigate  ", dim),
             Span::styled("f", accent),
             Span::styled(" fullscreen  ", dim),
             Span::styled("Esc", accent),
             Span::styled(" back", dim),
-        ]),
+        ],
         Focus::Sidebar => {
             let mut spans = vec![
                 Span::styled(" ↑↓", accent),
@@ -382,15 +386,32 @@ fn render_bottom_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffe
             spans.extend([
                 Span::styled("1-3", accent),
                 Span::styled(" tabs  ", dim),
+                Span::styled("c", accent),
+                Span::styled(" colors  ", dim),
                 Span::styled("q", accent),
                 Span::styled(" quit", dim),
             ]);
-            Line::from(spans)
+            spans
         }
         Focus::Fullscreen => return,
     };
 
-    buf.set_line(area.x, area.y, &hints, area.width);
+    let depth_label = app.color_depth.label();
+    let indicator = vec![
+        Span::styled("● ", accent),
+        Span::styled(depth_label, Style::default().fg(Color::White)),
+        Span::raw(" "),
+    ];
+    let indicator_width: u16 = indicator.iter().map(|s| s.width() as u16).sum();
+
+    let [hints_area, indicator_area] = Layout::horizontal([
+        Constraint::Min(0),
+        Constraint::Length(indicator_width),
+    ])
+    .areas(area);
+
+    buf.set_line(hints_area.x, hints_area.y, &Line::from(hints), hints_area.width);
+    buf.set_line(indicator_area.x, indicator_area.y, &Line::from(indicator), indicator_area.width);
 }
 
 fn fill_bg(buf: &mut Buffer, x: u16, y: u16, width: u16, color: Color) {

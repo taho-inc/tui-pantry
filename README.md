@@ -351,6 +351,7 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | `h/l` `←/→` | Collapse/expand | — | — |
 | `Enter` | Toggle group or focus preview | — | — |
 | `f` | Enter fullscreen (when widget selected) | Enter fullscreen | Exit to sidebar |
+| `c` | Cycle color depth (24-bit → 256 → 16 → 8 → mono) | — | — |
 | `1` `2` `3` / `Tab` | Switch tabs | — | — |
 | `Esc` | Quit | Return to sidebar | Exit to sidebar |
 | `q` | Quit | — | — |

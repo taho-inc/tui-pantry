@@ -1,4 +1,5 @@
 mod app;
+mod color_depth;
 mod ingredient;
 pub mod layout;
 mod nav;

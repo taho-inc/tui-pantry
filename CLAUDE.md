@@ -83,7 +83,7 @@ cargo run -p example-pantry  # ratatui stock widget showcase
 
 External users: `cargo install tui-pantry` then `cargo pantry` from their widget crate root.
 
-Keys: `j/k` or `↑/↓` navigate, `h/l` or `←/→` collapse/expand, `Enter` toggle or enter preview, `f` fullscreen (when widget selected), `1-3` direct tab access, `Tab`/`Shift-Tab` cycle tabs, `q` quit. Fullscreen mode displays the selected widget at full terminal size; `Esc` or `f` exits back to sidebar. Mouse: click sidebar entries to navigate, click tabs to switch, scroll wheel in sidebar to move up/down.
+Keys: `j/k` or `↑/↓` navigate, `h/l` or `←/→` collapse/expand, `Enter` toggle or enter preview, `f` fullscreen (when widget selected), `1-3` direct tab access, `Tab`/`Shift-Tab` cycle tabs, `c` cycle color depth (24-bit → 256 → 16 → 8 → mono → 24-bit), `q` quit. Fullscreen mode displays the selected widget at full terminal size; `Esc` or `f` exits back to sidebar. Mouse: click sidebar entries to navigate, click tabs to switch, scroll wheel in sidebar to move up/down.
 
 ## Development
 
@@ -106,6 +106,7 @@ cargo watch -w taho-tui -x "pantry"
 - [src/theme.rs](src/theme.rs) — `PantryTheme`: dark/light chrome palettes, parsed from `[config]`
 - [src/pane.rs](src/pane.rs) — `Pane` widget: titled border delegating to an ingredient
 - [src/swatch.rs](src/swatch.rs) — `GradientSwatch`: parameterized background gradient
+- [src/color_depth.rs](src/color_depth.rs) — runtime color depth emulation (TrueColor → 256 → 16 → 8 → mono)
 - [examples/example-pantry/](examples/example-pantry/) — reference pantry with ratatui stock widgets and Catppuccin Mocha styles
 
 ## Top-Bar Tabs

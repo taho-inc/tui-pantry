@@ -11,7 +11,7 @@ use ratatui::{
 };
 
 use crate::Ingredient;
-
+use crate::color_depth::{ColorDepth, quantize_buffer};
 use crate::nav::NavTree;
 use crate::theme::PantryTheme;
 use crate::ui;
@@ -31,6 +31,7 @@ pub struct App {
     pub(crate) active_tab: usize,
     pub(crate) navs: Vec<NavTree>,
     pub(crate) focus: Focus,
+    pub(crate) color_depth: ColorDepth,
     running: bool,
 }
 
@@ -47,6 +48,7 @@ impl App {
             active_tab: 0,
             navs,
             focus: Focus::Sidebar,
+            color_depth: ColorDepth::default(),
             running: true,
         }
     }
@@ -65,8 +67,12 @@ impl App {
             self.nav_mut()
                 .scroll_into_view(regions.sidebar.height.saturating_sub(1) as usize);
 
+            let depth = self.color_depth;
             terminal.draw(|frame| {
                 ui::render(&self, frame.area(), frame.buffer_mut(), &regions);
+                if depth != ColorDepth::TrueColor {
+                    quantize_buffer(frame.buffer_mut(), depth);
+                }
             })?;
 
             // ~30 fps poll; handles both keyboard and mouse input
@@ -97,6 +103,7 @@ impl App {
     fn handle_sidebar_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
         match code {
             KeyCode::Char('q') | KeyCode::Esc => self.running = false,
+            KeyCode::Char('c') => self.color_depth = self.color_depth.cycle(),
             KeyCode::Up | KeyCode::Char('k') => self.nav_mut().move_up(),
             KeyCode::Down | KeyCode::Char('j') => self.nav_mut().move_down(),
             KeyCode::Right | KeyCode::Char('l') => self.nav_mut().expand(),

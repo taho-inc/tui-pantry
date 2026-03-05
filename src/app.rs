@@ -22,6 +22,7 @@ pub(crate) const TAB_LABELS: &[&str] = &["Widgets", "Views", "Styles"];
 pub(crate) enum Focus {
     Sidebar,
     Preview,
+    Fullscreen,
 }
 
 pub struct App {
@@ -89,6 +90,7 @@ impl App {
         match self.focus {
             Focus::Sidebar => self.handle_sidebar_key(code, modifiers),
             Focus::Preview => self.handle_preview_key(code),
+            Focus::Fullscreen => self.handle_fullscreen_key(code),
         }
     }
 
@@ -100,6 +102,9 @@ impl App {
             KeyCode::Right | KeyCode::Char('l') => self.nav_mut().expand(),
             KeyCode::Left | KeyCode::Char('h') => self.nav_mut().collapse(),
             KeyCode::Enter => self.enter_or_toggle(),
+            KeyCode::Char('f') if self.nav().selected_ingredient().is_some() => {
+                self.focus = Focus::Fullscreen;
+            }
 
             // Tab switching
             KeyCode::Char('1') => self.active_tab = 0,
@@ -120,7 +125,25 @@ impl App {
     }
 
     fn handle_preview_key(&mut self, code: KeyCode) {
-        if matches!(code, KeyCode::Esc) {
+        match code {
+            KeyCode::Esc => {
+                self.focus = Focus::Sidebar;
+                return;
+            }
+            KeyCode::Char('f') => {
+                self.focus = Focus::Fullscreen;
+                return;
+            }
+            _ => {}
+        }
+
+        if let Some(idx) = self.nav().selected_ingredient() {
+            self.ingredients[idx].handle_key(code);
+        }
+    }
+
+    fn handle_fullscreen_key(&mut self, code: KeyCode) {
+        if matches!(code, KeyCode::Esc | KeyCode::Char('f')) {
             self.focus = Focus::Sidebar;
             return;
         }

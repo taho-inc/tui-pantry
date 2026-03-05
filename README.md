@@ -345,14 +345,15 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 
 ## Keys
 
-| Key | Sidebar | Preview |
-|-----|---------|---------|
-| `j/k` `↑/↓` | Navigate | Forwarded to ingredient |
-| `h/l` `←/→` | Collapse/expand | — |
-| `Enter` | Toggle group or focus preview | — |
-| `1` `2` `3` / `Tab` | Switch tabs | — |
-| `Esc` | Quit | Return to sidebar |
-| `q` | Quit | — |
+| Key | Sidebar | Preview | Fullscreen |
+|-----|---------|---------|------------|
+| `j/k` `↑/↓` | Navigate | Forwarded to ingredient | Forwarded to ingredient |
+| `h/l` `←/→` | Collapse/expand | — | — |
+| `Enter` | Toggle group or focus preview | — | — |
+| `f` | Enter fullscreen (when widget selected) | Enter fullscreen | Exit to sidebar |
+| `1` `2` `3` / `Tab` | Switch tabs | — | — |
+| `Esc` | Quit | Return to sidebar | Exit to sidebar |
+| `q` | Quit | — | — |
 
 ## Mouse
 

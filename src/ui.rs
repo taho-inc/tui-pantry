@@ -76,6 +76,15 @@ impl Regions {
 pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer, regions: &Regions) {
     let theme = &app.theme;
 
+    if app.focus == Focus::Fullscreen {
+        if let Some(idx) = app.nav().selected_ingredient() {
+            Clear.render(area, buf);
+            Block::new().style(Style::new().bg(theme.panel_bg)).render(area, buf);
+            app.ingredients[idx].render(area, buf);
+        }
+        return;
+    }
+
     GradientSwatch::new(theme.gradient_left, theme.gradient_right).render(area, buf);
 
     let inner = area.inner(Margin { vertical: 1, horizontal: 2 });
@@ -89,7 +98,7 @@ pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer, regions: &Regions)
     render_top_bar(app, theme, regions.top_bar, buf);
     render_sidebar(app, theme, regions.sidebar, buf);
     render_preview(app, theme, regions.preview, focused, buf);
-    render_bottom_bar(theme, focused, regions.bottom_bar, buf);
+    render_bottom_bar(app, theme, regions.bottom_bar, buf);
 }
 
 fn render_top_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
@@ -342,32 +351,43 @@ fn render_doc_panel(
     }
 }
 
-fn render_bottom_bar(theme: &PantryTheme, focused: bool, area: Rect, buf: &mut Buffer) {
+fn render_bottom_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
     let accent = Style::default().fg(theme.accent);
     let dim = Style::default().fg(theme.text_dim);
 
-    let hints = if focused {
-        Line::from(vec![
+    let hints = match app.focus {
+        Focus::Preview => Line::from(vec![
             Span::styled(" ↑↓", accent),
             Span::styled(" navigate  ", dim),
+            Span::styled("f", accent),
+            Span::styled(" fullscreen  ", dim),
             Span::styled("Esc", accent),
             Span::styled(" back", dim),
-        ])
-    } else {
-        Line::from(vec![
-            Span::styled(" ↑↓", accent),
-            Span::styled(" navigate  ", dim),
-            Span::styled("→", accent),
-            Span::styled(" expand  ", dim),
-            Span::styled("←", accent),
-            Span::styled(" collapse  ", dim),
-            Span::styled("↵", accent),
-            Span::styled(" select  ", dim),
-            Span::styled("1-3", accent),
-            Span::styled(" tabs  ", dim),
-            Span::styled("q", accent),
-            Span::styled(" quit", dim),
-        ])
+        ]),
+        Focus::Sidebar => {
+            let mut spans = vec![
+                Span::styled(" ↑↓", accent),
+                Span::styled(" navigate  ", dim),
+                Span::styled("→", accent),
+                Span::styled(" expand  ", dim),
+                Span::styled("←", accent),
+                Span::styled(" collapse  ", dim),
+                Span::styled("↵", accent),
+                Span::styled(" select  ", dim),
+            ];
+            if app.nav().selected_ingredient().is_some() {
+                spans.push(Span::styled("f", accent));
+                spans.push(Span::styled(" fullscreen  ", dim));
+            }
+            spans.extend([
+                Span::styled("1-3", accent),
+                Span::styled(" tabs  ", dim),
+                Span::styled("q", accent),
+                Span::styled(" quit", dim),
+            ]);
+            Line::from(spans)
+        }
+        Focus::Fullscreen => return,
     };
 
     buf.set_line(area.x, area.y, &hints, area.width);

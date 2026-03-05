@@ -1,10 +1,13 @@
+[workspace]
+members = ["crates/tui-pantry-macros", "examples/example-pantry"]
+
 [package]
 name = "tui-pantry"
 version = "0.1.0"
 edition = "2024"
 description = "Preview harness for developing Ratatui widgets in isolation"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/taho-inc/taho"
+repository = "https://github.com/taho-inc/tui-pantry"
 keywords = ["tui", "ratatui", "widgets", "storybook", "preview"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"

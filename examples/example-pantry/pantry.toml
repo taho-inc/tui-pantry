@@ -1,5 +1,5 @@
 [config]
-theme = "light"
+theme = "dark"
 style_source = "example_pantry::styles::palette"
 
 [colors.accent]

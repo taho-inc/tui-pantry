@@ -3,8 +3,14 @@ use crate::Ingredient;
 /// Entry in the flattened navigation list.
 #[derive(Debug)]
 pub(crate) enum NavEntry {
-    Group { name: String, expanded: bool },
-    Variant { group_idx: usize, ingredient_idx: usize },
+    Group {
+        name: String,
+        expanded: bool,
+    },
+    Variant {
+        group_idx: usize,
+        ingredient_idx: usize,
+    },
 }
 
 /// Flattened navigation tree built from grouped ingredients.
@@ -46,7 +52,11 @@ impl NavTree {
 
         let expanded = vec![true; groups.len()];
 
-        let cursor = if groups.is_empty() { 0 } else { 1.min(Self::total_visible(&expanded, &group_items).saturating_sub(1)) };
+        let cursor = if groups.is_empty() {
+            0
+        } else {
+            1.min(Self::total_visible(&expanded, &group_items).saturating_sub(1))
+        };
 
         Self {
             groups,
@@ -126,9 +136,10 @@ impl NavTree {
     /// Expand the group at cursor (right arrow).
     pub fn expand(&mut self) {
         if let Some(gi) = self.group_at_cursor()
-            && !self.expanded[gi] {
-                self.expanded[gi] = true;
-            }
+            && !self.expanded[gi]
+        {
+            self.expanded[gi] = true;
+        }
     }
 
     /// Collapse the group at cursor, or the parent group if on a variant (left arrow).
@@ -186,5 +197,277 @@ impl NavTree {
             Some(NavEntry::Group { name, .. }) => self.groups.iter().position(|g| g == name),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::{buffer::Buffer, layout::Rect};
+
+    struct Stub {
+        tab: &'static str,
+        group: &'static str,
+        name: &'static str,
+    }
+
+    impl Stub {
+        fn new(group: &'static str, name: &'static str) -> Self {
+            Self {
+                tab: "Widgets",
+                group,
+                name,
+            }
+        }
+
+        fn tab(mut self, tab: &'static str) -> Self {
+            self.tab = tab;
+            self
+        }
+    }
+
+    impl Ingredient for Stub {
+        fn tab(&self) -> &str {
+            self.tab
+        }
+        fn group(&self) -> &str {
+            self.group
+        }
+        fn name(&self) -> &str {
+            self.name
+        }
+        fn source(&self) -> &str {
+            ""
+        }
+        fn render(&self, _area: Rect, _buf: &mut Buffer) {}
+    }
+
+    fn boxed(s: Stub) -> Box<dyn Ingredient> {
+        Box::new(s)
+    }
+
+    fn sample_ingredients() -> Vec<Box<dyn Ingredient>> {
+        vec![
+            boxed(Stub::new("Table", "Default")),
+            boxed(Stub::new("Table", "Striped")),
+            boxed(Stub::new("Chart", "Line")),
+            boxed(Stub::new("Chart", "Bar")),
+            boxed(Stub::new("Chart", "Scatter")),
+        ]
+    }
+
+    // -- build ----------------------------------------------------------------
+
+    #[test]
+    fn build_groups_by_group_name() {
+        let items = sample_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+
+        assert_eq!(nav.groups, vec!["Table", "Chart"]);
+        assert_eq!(nav.group_items[0], vec![0, 1]);
+        assert_eq!(nav.group_items[1], vec![2, 3, 4]);
+    }
+
+    #[test]
+    fn build_filters_by_tab() {
+        let items = vec![
+            boxed(Stub::new("Table", "Default")),
+            boxed(Stub::new("Chart", "Line").tab("Styles")),
+        ];
+        let nav = NavTree::build(&items, "Widgets");
+
+        assert_eq!(nav.groups, vec!["Table"]);
+        assert_eq!(nav.group_items[0], vec![0]);
+    }
+
+    #[test]
+    fn build_empty_tab() {
+        let items = sample_ingredients();
+        let nav = NavTree::build(&items, "Views");
+
+        assert!(nav.is_empty());
+        assert_eq!(nav.cursor, 0);
+    }
+
+    #[test]
+    fn build_cursor_starts_on_first_variant() {
+        let items = sample_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+
+        // Cursor at 1 = first variant under first group
+        assert_eq!(nav.cursor, 1);
+        assert_eq!(nav.selected_ingredient(), Some(0));
+    }
+
+    // -- visible --------------------------------------------------------------
+
+    #[test]
+    fn visible_all_expanded() {
+        let items = sample_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+        let vis = nav.visible();
+
+        // Table(group) + 2 variants + Chart(group) + 3 variants = 7
+        assert_eq!(vis.len(), 7);
+        assert!(matches!(vis[0], NavEntry::Group { ref name, expanded: true } if name == "Table"));
+        assert!(matches!(
+            vis[1],
+            NavEntry::Variant {
+                ingredient_idx: 0,
+                ..
+            }
+        ));
+        assert!(matches!(
+            vis[2],
+            NavEntry::Variant {
+                ingredient_idx: 1,
+                ..
+            }
+        ));
+        assert!(matches!(vis[3], NavEntry::Group { ref name, expanded: true } if name == "Chart"));
+    }
+
+    #[test]
+    fn visible_collapsed_hides_children() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.expanded[0] = false; // collapse Table
+
+        let vis = nav.visible();
+        // Table(group, collapsed) + Chart(group) + 3 variants = 5
+        assert_eq!(vis.len(), 5);
+        assert!(matches!(
+            vis[0],
+            NavEntry::Group {
+                expanded: false,
+                ..
+            }
+        ));
+        assert!(matches!(vis[1], NavEntry::Group { ref name, .. } if name == "Chart"));
+    }
+
+    // -- navigation -----------------------------------------------------------
+
+    #[test]
+    fn move_to_clamps() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.move_to(999);
+        assert_eq!(nav.cursor, nav.visible().len() - 1);
+    }
+
+    #[test]
+    fn selected_ingredient_on_group_returns_none() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 0; // group header
+        assert_eq!(nav.selected_ingredient(), None);
+    }
+
+    #[test]
+    fn selected_ingredient_on_variant_returns_index() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 4; // Chart > "Line" (ingredient_idx=2)
+        assert_eq!(nav.selected_ingredient(), Some(2));
+    }
+
+    // -- expand / collapse ----------------------------------------------------
+
+    #[test]
+    fn expand_on_collapsed_group() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.expanded[0] = false;
+        nav.cursor = 0;
+        nav.expand();
+        assert!(nav.expanded[0]);
+    }
+
+    #[test]
+    fn collapse_from_variant_jumps_to_parent() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 1; // first variant of Table
+        nav.collapse();
+
+        assert!(!nav.expanded[0]); // Table collapsed
+        assert_eq!(nav.cursor, 0); // cursor on Table group
+    }
+
+    #[test]
+    fn collapse_from_second_group_variant() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 5; // Chart > "Bar" (second variant)
+        nav.collapse();
+
+        assert!(!nav.expanded[1]); // Chart collapsed
+                                   // Table(expanded) + 2 variants = 3; Chart at position 3
+        assert_eq!(nav.cursor, 3);
+    }
+
+    #[test]
+    fn toggle_or_enter_on_group_toggles() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 0;
+        assert!(nav.expanded[0]);
+        nav.toggle_or_enter();
+        assert!(!nav.expanded[0]);
+        nav.toggle_or_enter();
+        assert!(nav.expanded[0]);
+    }
+
+    #[test]
+    fn toggle_or_enter_on_variant_is_noop() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 1; // variant
+        let expanded_before = nav.expanded.clone();
+        nav.toggle_or_enter();
+        assert_eq!(nav.expanded, expanded_before);
+    }
+
+    // -- scroll ---------------------------------------------------------------
+
+    #[test]
+    fn scroll_into_view_scrolls_down() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 6; // last entry
+        nav.scroll_offset = 0;
+        nav.scroll_into_view(3);
+        // cursor(6) should be visible: offset = 6 - 3 + 1 = 4
+        assert_eq!(nav.scroll_offset, 4);
+    }
+
+    #[test]
+    fn scroll_into_view_scrolls_up() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 1;
+        nav.scroll_offset = 3;
+        nav.scroll_into_view(3);
+        assert_eq!(nav.scroll_offset, 1);
+    }
+
+    #[test]
+    fn scroll_into_view_clamps_offset_past_end() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.scroll_offset = 100;
+        nav.scroll_into_view(3);
+        // max_offset = 7 - 3 = 4
+        assert!(nav.scroll_offset <= 4);
+    }
+
+    #[test]
+    fn scroll_into_view_zero_viewport_is_noop() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        let before = nav.scroll_offset;
+        nav.scroll_into_view(0);
+        assert_eq!(nav.scroll_offset, before);
     }
 }

@@ -5,13 +5,12 @@ pub mod layout;
 mod nav;
 mod pane;
 pub mod stylesheet;
-mod swatch;
 pub mod theme;
 mod ui;
 
 use std::io;
 
-pub use ingredient::{Ingredient, PropInfo};
+pub use ingredient::{is_click, Ingredient, PropInfo};
 pub use pane::Pane;
 
 /// Re-export ratatui primitives that ingredient authors need.
@@ -62,19 +61,26 @@ pub fn run(ingredients: Vec<Box<dyn Ingredient>>, manifest_dir: &str) -> io::Res
 
     let (mut all, chrome) = match styles_content {
         Ok(ref content) => {
-            let table: toml::Table = content
-                .parse()
-                .expect("pantry.toml: invalid TOML");
-            (stylesheet::from_toml(content), theme::PantryTheme::from_toml(&table))
+            let table: toml::Table = content.parse().expect("pantry.toml: invalid TOML");
+            (
+                stylesheet::from_toml(content),
+                theme::PantryTheme::from_toml(&table),
+            )
         }
         Err(_) => (Vec::new(), theme::PantryTheme::dark()),
     };
     all.extend(ingredients);
 
     let terminal = ratatui::init();
-    ratatui::crossterm::execute!(std::io::stdout(), ratatui::crossterm::event::EnableMouseCapture)?;
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    )?;
     let result = app::App::new(all, chrome).run(terminal);
-    let _ = ratatui::crossterm::execute!(std::io::stdout(), ratatui::crossterm::event::DisableMouseCapture);
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::DisableMouseCapture
+    );
     ratatui::restore();
     result
 }

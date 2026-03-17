@@ -2,9 +2,9 @@
 name = "example-pantry"
 description = "Ratatui stock widget showcase for tui-pantry"
 publish = false
-edition = "2024"
-version = "0.1.0"
+edition.workspace = true
+version.workspace = true
 
 [dependencies]
-ratatui = "0.30"
-tui-pantry = { path = "../.." }
+ratatui.workspace = true
+tui-pantry.workspace = true

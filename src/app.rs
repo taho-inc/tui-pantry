@@ -3,20 +3,19 @@ use std::time::Duration;
 
 use ratatui::{
     crossterm::event::{
-        self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEvent,
-        MouseEventKind,
+        self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
     },
     layout::Position,
     DefaultTerminal,
 };
 
-use crate::Ingredient;
-use crate::color_depth::{ColorDepth, quantize_buffer};
+use crate::color_depth::{quantize_buffer, ColorDepth};
 use crate::nav::NavTree;
 use crate::theme::PantryTheme;
 use crate::ui;
+use crate::Ingredient;
 
-pub(crate) const TAB_LABELS: &[&str] = &["Widgets", "Views", "Styles"];
+pub(crate) const TAB_LABELS: &[&str] = &["Widgets", "Panes", "Views", "Styles"];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Focus {
@@ -62,34 +61,63 @@ impl App {
     }
 
     pub fn run(mut self, mut terminal: DefaultTerminal) -> io::Result<()> {
+        let mut dirty = true;
+        let mut regions = ui::Regions::from_terminal(terminal.size()?.into());
+
         while self.running {
-            let regions = ui::Regions::from_terminal(terminal.size()?.into());
-            self.nav_mut()
-                .scroll_into_view(regions.sidebar.height.saturating_sub(1) as usize);
+            if dirty {
+                regions = ui::Regions::from_terminal(terminal.size()?.into());
+                self.nav_mut()
+                    .scroll_into_view(regions.sidebar.height.saturating_sub(1) as usize);
 
-            let depth = self.color_depth;
-            terminal.draw(|frame| {
-                ui::render(&self, frame.area(), frame.buffer_mut(), &regions);
-                if depth != ColorDepth::TrueColor {
-                    quantize_buffer(frame.buffer_mut(), depth);
-                }
-            })?;
+                let depth = self.color_depth;
+                terminal.draw(|frame| {
+                    // Recompute regions from the actual frame area to avoid
+                    // stale layout if the terminal resized after size() above.
+                    let draw_regions = ui::Regions::from_terminal(frame.area());
+                    ui::render(&self, frame.area(), frame.buffer_mut(), &draw_regions);
+                    if depth != ColorDepth::TrueColor {
+                        quantize_buffer(frame.buffer_mut(), depth);
+                    }
+                })?;
+                dirty = false;
+            }
 
-            // ~30 fps poll; handles both keyboard and mouse input
-            if event::poll(Duration::from_millis(33))? {
+            // Animated ingredients tick at ~30 fps; static views wake once/sec.
+            let timeout = if self.selected_is_animated() {
+                Duration::from_millis(33)
+            } else {
+                Duration::from_secs(1)
+            };
+            let has_event = event::poll(timeout)?;
+
+            if has_event {
                 match event::read()? {
                     Event::Key(key) if key.kind == KeyEventKind::Press => {
                         self.handle_key(key.code, key.modifiers);
+                        dirty = true;
                     }
                     Event::Mouse(mouse) => {
                         self.handle_mouse(mouse, &regions);
+                        dirty = true;
                     }
+                    Event::Resize(..) => dirty = true,
                     _ => {}
                 }
+            } else {
+                // Animation tick expired — redraw.
+                dirty = true;
             }
         }
 
         Ok(())
+    }
+
+    /// True when the currently visible ingredient is animated.
+    fn selected_is_animated(&self) -> bool {
+        self.nav()
+            .selected_ingredient()
+            .is_some_and(|idx| self.ingredients[idx].animated())
     }
 
     fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
@@ -104,6 +132,7 @@ impl App {
         match code {
             KeyCode::Char('q') | KeyCode::Esc => self.running = false,
             KeyCode::Char('c') => self.color_depth = self.color_depth.cycle(),
+            KeyCode::Char('t') => self.theme = self.theme.toggle(),
             KeyCode::Up | KeyCode::Char('k') => self.nav_mut().move_up(),
             KeyCode::Down | KeyCode::Char('j') => self.nav_mut().move_down(),
             KeyCode::Right | KeyCode::Char('l') => self.nav_mut().expand(),
@@ -117,6 +146,7 @@ impl App {
             KeyCode::Char('1') => self.active_tab = 0,
             KeyCode::Char('2') => self.active_tab = 1,
             KeyCode::Char('3') => self.active_tab = 2,
+            KeyCode::Char('4') => self.active_tab = 3,
             KeyCode::Tab if modifiers.contains(KeyModifiers::SHIFT) => {
                 self.active_tab = (self.active_tab + TAB_LABELS.len() - 1) % TAB_LABELS.len();
             }
@@ -160,9 +190,30 @@ impl App {
         }
     }
 
-    /// Dispatch mouse events: sidebar clicks, tab clicks, scroll wheel.
+    /// Dispatch mouse events: sidebar clicks, tab clicks, scroll wheel, ingredient forwarding.
     fn handle_mouse(&mut self, mouse: MouseEvent, regions: &ui::Regions) {
         let pos = Position::new(mouse.column, mouse.row);
+
+        // Forward mouse events to interactive ingredients in preview/fullscreen.
+        match self.focus {
+            Focus::Preview | Focus::Fullscreen => {
+                let ingredient_area = if self.focus == Focus::Fullscreen {
+                    regions.fullscreen_area()
+                } else {
+                    ui::ingredient_area(regions, &self.ingredients, self.nav())
+                };
+
+                if let Some(idx) = self.nav().selected_ingredient()
+                    && self.ingredients[idx].interactive()
+                    && ingredient_area.contains(pos)
+                {
+                    self.ingredients[idx].handle_mouse(mouse, ingredient_area);
+                    return;
+                }
+            }
+            Focus::Sidebar => {}
+        }
+
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 if regions.sidebar.contains(pos) {

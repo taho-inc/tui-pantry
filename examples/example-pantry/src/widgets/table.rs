@@ -5,7 +5,7 @@ use ratatui::{
     style::{Modifier, Style},
     widgets::{Block, Cell, Row, StatefulWidget, Table as RatatuiTable, TableState},
 };
-use tui_pantry::Ingredient;
+use tui_pantry::{Ingredient, PropInfo};
 
 use crate::styles::MOCHA;
 
@@ -48,6 +48,16 @@ fn status_color(status: &str) -> ratatui::style::Color {
     }
 }
 
+const DESCRIPTION: &str = "Row-selectable data table with column constraints";
+
+const PROPS: &[PropInfo] = &[
+    PropInfo { name: "header", ty: "Row", description: "Fixed header row with bottom margin" },
+    PropInfo { name: "widths", ty: "&[Constraint]", description: "Column width constraints" },
+    PropInfo { name: "block", ty: "Block", description: "Surrounding border and title" },
+    PropInfo { name: "row_highlight_style", ty: "Style", description: "Style applied to the selected row" },
+    PropInfo { name: "highlight_symbol", ty: "&str", description: "Prefix glyph for the selected row" },
+];
+
 // ── Default (interactive) ──
 
 struct TableDefault {
@@ -68,7 +78,9 @@ impl Ingredient for TableDefault {
     fn group(&self) -> &str { "Table" }
     fn name(&self) -> &str { "Default" }
     fn source(&self) -> &str { "ratatui::widgets::Table" }
+    fn description(&self) -> &str { DESCRIPTION }
     fn interactive(&self) -> bool { true }
+    fn props(&self) -> &[PropInfo] { PROPS }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let header = Row::new(["Name", "Kind", "Version", "Status"])
@@ -142,6 +154,8 @@ impl Ingredient for TableEmpty {
     fn group(&self) -> &str { "Table" }
     fn name(&self) -> &str { "Empty" }
     fn source(&self) -> &str { "ratatui::widgets::Table" }
+    fn description(&self) -> &str { DESCRIPTION }
+    fn props(&self) -> &[PropInfo] { PROPS }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let header = Row::new(["Name", "Kind", "Version", "Status"])

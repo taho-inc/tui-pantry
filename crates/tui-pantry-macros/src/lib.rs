@@ -19,23 +19,15 @@ use quote::quote;
 /// Cargo tracks it for rebuild-on-change.
 #[proc_macro]
 pub fn pantry_ingredients(_input: TokenStream) -> TokenStream {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
-        .expect("CARGO_MANIFEST_DIR not set");
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
 
     let pantry_path = std::path::Path::new(&manifest_dir).join("pantry.toml");
-    let content = std::fs::read_to_string(&pantry_path).unwrap_or_else(|e| {
-        panic!(
-            "tui-pantry: could not read {}: {e}",
-            pantry_path.display()
-        )
-    });
+    let content = std::fs::read_to_string(&pantry_path)
+        .unwrap_or_else(|e| panic!("tui-pantry: could not read {}: {e}", pantry_path.display()));
 
-    let table: toml::Table = content.parse().unwrap_or_else(|e| {
-        panic!(
-            "tui-pantry: invalid TOML in {}: {e}",
-            pantry_path.display()
-        )
-    });
+    let table: toml::Table = content
+        .parse()
+        .unwrap_or_else(|e| panic!("tui-pantry: invalid TOML in {}: {e}", pantry_path.display()));
 
     let extends = parse_ingredients(&table);
 
@@ -115,9 +107,9 @@ fn parse_ingredient_group(table: &toml::Table) -> Vec<proc_macro2::TokenStream> 
                 .expect("tui-pantry: each module entry must be a string");
 
             let full_path = format!("{source}::{module}::ingredient");
-            let path: proc_macro2::TokenStream = full_path.parse().unwrap_or_else(|e| {
-                panic!("tui-pantry: invalid module path \"{full_path}\": {e}")
-            });
+            let path: proc_macro2::TokenStream = full_path
+                .parse()
+                .unwrap_or_else(|e| panic!("tui-pantry: invalid module path \"{full_path}\": {e}"));
 
             quote! {
                 __pantry_v.extend(#path::ingredients());

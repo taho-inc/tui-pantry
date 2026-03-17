@@ -4,7 +4,7 @@ use ratatui::{
     style::Style,
     widgets::{Block, Gauge as RatatuiGauge, Widget},
 };
-use tui_pantry::Ingredient;
+use tui_pantry::{Ingredient, PropInfo};
 
 use crate::styles::MOCHA;
 
@@ -20,6 +20,15 @@ pub mod ingredient {
         ]
     }
 }
+
+const DESCRIPTION: &str = "Horizontal progress bar with label";
+
+const PROPS: &[PropInfo] = &[
+    PropInfo { name: "ratio", ty: "f64", description: "Fill amount from 0.0 to 1.0" },
+    PropInfo { name: "label", ty: "Span", description: "Text centered over the bar" },
+    PropInfo { name: "gauge_style", ty: "Style", description: "Fill foreground and empty background" },
+    PropInfo { name: "block", ty: "Block", description: "Surrounding border and title" },
+];
 
 fn render_gauge(label: &str, ratio: f64, area: Rect, buf: &mut Buffer) {
     let [_, row, _] = Layout::vertical([
@@ -59,6 +68,8 @@ impl Ingredient for GaugeLow {
     fn group(&self) -> &str { "Gauge" }
     fn name(&self) -> &str { "Low (green)" }
     fn source(&self) -> &str { "ratatui::widgets::Gauge" }
+    fn description(&self) -> &str { DESCRIPTION }
+    fn props(&self) -> &[PropInfo] { PROPS }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_gauge("CPU", 0.34, area, buf);
@@ -73,6 +84,8 @@ impl Ingredient for GaugeMedium {
     fn group(&self) -> &str { "Gauge" }
     fn name(&self) -> &str { "Medium (yellow)" }
     fn source(&self) -> &str { "ratatui::widgets::Gauge" }
+    fn description(&self) -> &str { DESCRIPTION }
+    fn props(&self) -> &[PropInfo] { PROPS }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_gauge("CPU", 0.74, area, buf);
@@ -87,6 +100,8 @@ impl Ingredient for GaugeHigh {
     fn group(&self) -> &str { "Gauge" }
     fn name(&self) -> &str { "High (red)" }
     fn source(&self) -> &str { "ratatui::widgets::Gauge" }
+    fn description(&self) -> &str { DESCRIPTION }
+    fn props(&self) -> &[PropInfo] { PROPS }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_gauge("CPU", 0.92, area, buf);
@@ -101,6 +116,8 @@ impl Ingredient for GaugeStacked {
     fn group(&self) -> &str { "Gauge" }
     fn name(&self) -> &str { "Stacked (3-up)" }
     fn source(&self) -> &str { "ratatui::widgets::Gauge" }
+    fn description(&self) -> &str { DESCRIPTION }
+    fn props(&self) -> &[PropInfo] { PROPS }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let gauges: &[(&str, f64)] = &[

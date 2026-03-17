@@ -22,27 +22,32 @@ fn main() -> ExitCode {
 fn run() -> Result<ExitCode, String> {
     let args: Vec<String> = env::args().collect();
     let forward = skip_subcommand_token(&args);
+    let (package, rest) = extract_package(forward);
 
-    let cwd = env::current_dir().map_err(|e| format!("cannot read working directory: {e}"))?;
+    // When no -p flag, we can validate locally and scaffold the example.
+    // With -p, let cargo handle resolution — it knows the workspace.
+    if package.is_none() {
+        let cwd = env::current_dir().map_err(|e| format!("cannot read working directory: {e}"))?;
 
-    if !cwd.join("pantry.toml").exists() {
-        return Err(format!(
-            "no pantry.toml in {}\n\
-             Create one with [ingredients] to get started.",
-            cwd.display()
-        ));
+        if !cwd.join("pantry.toml").exists() {
+            return Err(format!(
+                "no pantry.toml in {}\n\
+                 Create one with [ingredients] to get started.",
+                cwd.display()
+            ));
+        }
+
+        ensure_example(&cwd.join("examples/widget_preview.rs"))?;
     }
 
-    let example = cwd.join("examples/pantry.rs");
-    ensure_example(&example)?;
+    let mut cmd = Command::new("cargo");
+    cmd.args(["run", "--example", "widget_preview", "--features", "pantry"]);
+    if let Some(ref pkg) = package {
+        cmd.args(["-p", pkg]);
+    }
+    cmd.args(&rest);
 
-    let status = Command::new("cargo")
-        .arg("run")
-        .arg("--example")
-        .arg("pantry")
-        .arg("--features")
-        .arg("pantry")
-        .args(forward)
+    let status = cmd
         .status()
         .map_err(|e| format!("failed to run cargo: {e}"))?;
 
@@ -51,6 +56,25 @@ fn run() -> Result<ExitCode, String> {
     } else {
         ExitCode::from(status.code().unwrap_or(1) as u8)
     })
+}
+
+/// Extract `-p <pkg>` or `--package <pkg>` from args, returning the
+/// package name and remaining args with the flag pair removed.
+fn extract_package(args: &[String]) -> (Option<String>, Vec<String>) {
+    let mut i = 0;
+    while i < args.len() {
+        if (args[i] == "-p" || args[i] == "--package") && i + 1 < args.len() {
+            let pkg = args[i + 1].clone();
+            let mut rest = args[..i].to_vec();
+            rest.extend_from_slice(&args[i + 2..]);
+            return (Some(pkg), rest);
+        }
+        if args[i] == "--" {
+            break;
+        }
+        i += 1;
+    }
+    (None, args.to_vec())
 }
 
 /// Cargo subcommand convention: argv = ["cargo-pantry", "pantry", ...rest].
@@ -73,8 +97,7 @@ fn ensure_example(path: &Path) -> Result<(), String> {
             .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
     }
 
-    fs::write(path, EXAMPLE_SOURCE)
-        .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+    fs::write(path, EXAMPLE_SOURCE).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
 
     eprintln!("cargo-pantry: created {}", path.display());
 

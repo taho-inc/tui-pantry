@@ -6,16 +6,13 @@ use ratatui::{
 };
 use tui_pantry::{Ingredient, layout::render_centered};
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(MetricPanelSteady),
-            Box::new(MetricPanelSpike),
-        ]
+        vec![Box::new(MetricPanelSteady), Box::new(MetricPanelSpike)]
     }
 }
 
@@ -47,10 +44,7 @@ fn render_metric(data: &MetricData, area: Rect, buf: &mut Buffer) {
     Sparkline::default()
         .data(data.history)
         .style(Style::default().fg(data.spark_color).bg(MOCHA.surface))
-        .block(
-            Block::bordered()
-                .border_style(Style::default().fg(MOCHA.border)),
-        )
+        .block(Block::bordered().border_style(Style::default().fg(MOCHA.border)))
         .render(spark_row, buf);
 }
 
@@ -61,18 +55,34 @@ struct MetricPanelSteady;
 const STEADY: MetricData = MetricData {
     label: "CPU",
     ratio: 0.34,
-    history: &[3, 4, 3, 5, 4, 3, 4, 3, 5, 4, 3, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 3],
+    history: &[
+        3, 4, 3, 5, 4, 3, 4, 3, 5, 4, 3, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 3,
+    ],
     spark_color: accent::GREEN,
 };
 
 impl Ingredient for MetricPanelSteady {
-    fn tab(&self) -> &str { "Panes" }
-    fn group(&self) -> &str { "Metric Panel" }
-    fn name(&self) -> &str { "Steady" }
-    fn source(&self) -> &str { "example_pantry::panes::metric_panel" }
+    fn tab(&self) -> &str {
+        "Panes"
+    }
+    fn group(&self) -> &str {
+        "Metric Panel"
+    }
+    fn name(&self) -> &str {
+        "Steady"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::panes::metric_panel"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(MetricWidget(&STEADY), Some(Constraint::Max(40)), Some(Constraint::Max(12)), area, buf);
+        render_centered(
+            MetricWidget(&STEADY),
+            Some(Constraint::Max(40)),
+            Some(Constraint::Max(12)),
+            area,
+            buf,
+        );
     }
 }
 
@@ -83,18 +93,34 @@ struct MetricPanelSpike;
 const SPIKE: MetricData = MetricData {
     label: "CPU",
     ratio: 0.92,
-    history: &[5, 6, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+    history: &[
+        5, 6, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+    ],
     spark_color: accent::RED,
 };
 
 impl Ingredient for MetricPanelSpike {
-    fn tab(&self) -> &str { "Panes" }
-    fn group(&self) -> &str { "Metric Panel" }
-    fn name(&self) -> &str { "Spike" }
-    fn source(&self) -> &str { "example_pantry::panes::metric_panel" }
+    fn tab(&self) -> &str {
+        "Panes"
+    }
+    fn group(&self) -> &str {
+        "Metric Panel"
+    }
+    fn name(&self) -> &str {
+        "Spike"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::panes::metric_panel"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(MetricWidget(&SPIKE), Some(Constraint::Max(40)), Some(Constraint::Max(12)), area, buf);
+        render_centered(
+            MetricWidget(&SPIKE),
+            Some(Constraint::Max(40)),
+            Some(Constraint::Max(12)),
+            area,
+            buf,
+        );
     }
 }
 

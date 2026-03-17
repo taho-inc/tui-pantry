@@ -9,16 +9,13 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(DashboardDefault::new()),
-            Box::new(DashboardEmpty),
-        ]
+        vec![Box::new(DashboardDefault::new()), Box::new(DashboardEmpty)]
     }
 }
 
@@ -34,12 +31,48 @@ struct ServiceRow {
 
 fn sample_services() -> Vec<ServiceRow> {
     vec![
-        ServiceRow { name: "api-gateway", region: "us-east", cpu: 34, requests: 1420, status: "Healthy" },
-        ServiceRow { name: "auth-svc", region: "us-east", cpu: 71, requests: 890, status: "Healthy" },
-        ServiceRow { name: "data-pipeline", region: "eu-west", cpu: 88, requests: 2100, status: "Degraded" },
-        ServiceRow { name: "ml-inference", region: "ap-south", cpu: 45, requests: 340, status: "Healthy" },
-        ServiceRow { name: "cache-layer", region: "us-west", cpu: 22, requests: 5600, status: "Healthy" },
-        ServiceRow { name: "queue-worker", region: "eu-west", cpu: 92, requests: 780, status: "Critical" },
+        ServiceRow {
+            name: "api-gateway",
+            region: "us-east",
+            cpu: 34,
+            requests: 1420,
+            status: "Healthy",
+        },
+        ServiceRow {
+            name: "auth-svc",
+            region: "us-east",
+            cpu: 71,
+            requests: 890,
+            status: "Healthy",
+        },
+        ServiceRow {
+            name: "data-pipeline",
+            region: "eu-west",
+            cpu: 88,
+            requests: 2100,
+            status: "Degraded",
+        },
+        ServiceRow {
+            name: "ml-inference",
+            region: "ap-south",
+            cpu: 45,
+            requests: 340,
+            status: "Healthy",
+        },
+        ServiceRow {
+            name: "cache-layer",
+            region: "us-west",
+            cpu: 22,
+            requests: 5600,
+            status: "Healthy",
+        },
+        ServiceRow {
+            name: "queue-worker",
+            region: "eu-west",
+            cpu: 92,
+            requests: 780,
+            status: "Critical",
+        },
     ]
 }
 
@@ -101,16 +134,24 @@ fn render_barchart(area: Rect, buf: &mut Buffer) {
 
 fn render_sparklines(area: Rect, buf: &mut Buffer) {
     let series: &[(&str, &[u64], ratatui::style::Color)] = &[
-        ("Throughput", &[
-            4, 7, 3, 8, 6, 9, 2, 5, 8, 3, 7, 4, 6, 9, 5, 3, 7, 8, 2, 6,
-            4, 9, 5, 7, 3, 6, 8, 4, 7, 5, 3, 9, 6, 4, 8, 7, 2, 5, 9, 3,
-            7, 4, 6, 8, 5, 3, 7, 9, 2, 6, 4, 8, 5, 7, 3, 6, 9, 4, 7, 5,
-        ], accent::GREEN),
-        ("Errors", &[
-            0, 0, 1, 0, 3, 0, 0, 2, 0, 0, 0, 5, 0, 0, 1, 0, 0, 0, 0, 2,
-            0, 0, 0, 1, 0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0,
-            0, 0, 4, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 3, 0,
-        ], accent::RED),
+        (
+            "Throughput",
+            &[
+                4, 7, 3, 8, 6, 9, 2, 5, 8, 3, 7, 4, 6, 9, 5, 3, 7, 8, 2, 6, 4, 9, 5, 7, 3, 6, 8, 4,
+                7, 5, 3, 9, 6, 4, 8, 7, 2, 5, 9, 3, 7, 4, 6, 8, 5, 3, 7, 9, 2, 6, 4, 8, 5, 7, 3, 6,
+                9, 4, 7, 5,
+            ],
+            accent::GREEN,
+        ),
+        (
+            "Errors",
+            &[
+                0, 0, 1, 0, 3, 0, 0, 2, 0, 0, 0, 5, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0,
+                3, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 4, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1,
+                0, 0, 3, 0,
+            ],
+            accent::RED,
+        ),
     ];
 
     let rows = Layout::vertical(vec![Constraint::Length(4); series.len()]).split(area);
@@ -193,11 +234,21 @@ impl DashboardDefault {
 }
 
 impl Ingredient for DashboardDefault {
-    fn tab(&self) -> &str { "Views" }
-    fn group(&self) -> &str { "Dashboard" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "example_pantry::views::dashboard" }
-    fn interactive(&self) -> bool { true }
+    fn tab(&self) -> &str {
+        "Views"
+    }
+    fn group(&self) -> &str {
+        "Dashboard"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::views::dashboard"
+    }
+    fn interactive(&self) -> bool {
+        true
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         // Top row: gauges
@@ -228,12 +279,14 @@ impl Ingredient for DashboardDefault {
         match code {
             KeyCode::Up | KeyCode::Char('k') => {
                 let i = self.state.selected().unwrap_or(0);
-                self.state.select(Some(if i == 0 { len.saturating_sub(1) } else { i - 1 }));
+                self.state
+                    .select(Some(if i == 0 { len.saturating_sub(1) } else { i - 1 }));
                 true
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 let i = self.state.selected().unwrap_or(0);
-                self.state.select(Some(if i >= len - 1 { 0 } else { i + 1 }));
+                self.state
+                    .select(Some(if i >= len - 1 { 0 } else { i + 1 }));
                 true
             }
             _ => false,
@@ -246,10 +299,18 @@ impl Ingredient for DashboardDefault {
 struct DashboardEmpty;
 
 impl Ingredient for DashboardEmpty {
-    fn tab(&self) -> &str { "Views" }
-    fn group(&self) -> &str { "Dashboard" }
-    fn name(&self) -> &str { "Empty" }
-    fn source(&self) -> &str { "example_pantry::views::dashboard" }
+    fn tab(&self) -> &str {
+        "Views"
+    }
+    fn group(&self) -> &str {
+        "Dashboard"
+    }
+    fn name(&self) -> &str {
+        "Empty"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::views::dashboard"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let [gauge_row, chart_row, table_row] = Layout::vertical([
@@ -268,7 +329,11 @@ impl Ingredient for DashboardEmpty {
                         .title_style(Style::default().fg(MOCHA.text))
                         .border_style(Style::default().fg(MOCHA.border)),
                 )
-                .gauge_style(Style::default().fg(MOCHA.text_disabled).bg(MOCHA.surface_raised))
+                .gauge_style(
+                    Style::default()
+                        .fg(MOCHA.text_disabled)
+                        .bg(MOCHA.surface_raised),
+                )
                 .ratio(0.0)
                 .label("—")
                 .render(*col, buf);

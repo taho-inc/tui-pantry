@@ -13,10 +13,7 @@ pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(StatusBadgeInline),
-            Box::new(StatusBadgePill),
-        ]
+        vec![Box::new(StatusBadgeInline), Box::new(StatusBadgePill)]
     }
 }
 
@@ -28,15 +25,35 @@ struct Status {
 const DESCRIPTION: &str = "Colored dot + label for at-a-glance status";
 
 const PROPS: &[PropInfo] = &[
-    PropInfo { name: "color", ty: "Color", description: "Dot and label color mapped from state" },
-    PropInfo { name: "label", ty: "&str", description: "Status text" },
+    PropInfo {
+        name: "color",
+        ty: "Color",
+        description: "Dot and label color mapped from state",
+    },
+    PropInfo {
+        name: "label",
+        ty: "&str",
+        description: "Status text",
+    },
 ];
 
 const STATUSES: &[Status] = &[
-    Status { label: "Healthy", color: MOCHA.ok },
-    Status { label: "Degraded", color: MOCHA.warn },
-    Status { label: "Offline", color: MOCHA.critical },
-    Status { label: "Unknown", color: MOCHA.text_disabled },
+    Status {
+        label: "Healthy",
+        color: MOCHA.ok,
+    },
+    Status {
+        label: "Degraded",
+        color: MOCHA.warn,
+    },
+    Status {
+        label: "Offline",
+        color: MOCHA.critical,
+    },
+    Status {
+        label: "Unknown",
+        color: MOCHA.text_disabled,
+    },
 ];
 
 // ── Inline ──
@@ -44,11 +61,21 @@ const STATUSES: &[Status] = &[
 struct StatusBadgeInline;
 
 impl Ingredient for StatusBadgeInline {
-    fn group(&self) -> &str { "Status Badge" }
-    fn name(&self) -> &str { "Inline" }
-    fn source(&self) -> &str { "example_pantry::widgets::status_badge" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Status Badge"
+    }
+    fn name(&self) -> &str {
+        "Inline"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::status_badge"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let rows = Layout::vertical(vec![Constraint::Length(1); STATUSES.len()]).split(area);
@@ -68,11 +95,21 @@ impl Ingredient for StatusBadgeInline {
 struct StatusBadgePill;
 
 impl Ingredient for StatusBadgePill {
-    fn group(&self) -> &str { "Status Badge" }
-    fn name(&self) -> &str { "Pill" }
-    fn source(&self) -> &str { "example_pantry::widgets::status_badge" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Status Badge"
+    }
+    fn name(&self) -> &str {
+        "Pill"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::status_badge"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let rows = Layout::vertical(vec![Constraint::Length(2); STATUSES.len()]).split(area);

@@ -55,10 +55,18 @@ impl ScrollbarVertical {
 }
 
 impl Ingredient for ScrollbarVertical {
-    fn group(&self) -> &str { "Scrollbar" }
-    fn name(&self) -> &str { "Vertical" }
-    fn source(&self) -> &str { "ratatui::widgets::Scrollbar" }
-    fn interactive(&self) -> bool { true }
+    fn group(&self) -> &str {
+        "Scrollbar"
+    }
+    fn name(&self) -> &str {
+        "Vertical"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Scrollbar"
+    }
+    fn interactive(&self) -> bool {
+        true
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered()
@@ -77,8 +85,7 @@ impl Ingredient for ScrollbarVertical {
             .scroll((self.position as u16, 0))
             .render(area, buf);
 
-        let mut scrollbar_state = ScrollbarState::new(SAMPLE_TEXT.len())
-            .position(self.position);
+        let mut scrollbar_state = ScrollbarState::new(SAMPLE_TEXT.len()).position(self.position);
 
         RatatuiScrollbar::new(ScrollbarOrientation::VerticalRight)
             .thumb_style(Style::default().fg(MOCHA.accent))
@@ -115,10 +122,18 @@ impl ScrollbarHorizontal {
 }
 
 impl Ingredient for ScrollbarHorizontal {
-    fn group(&self) -> &str { "Scrollbar" }
-    fn name(&self) -> &str { "Horizontal" }
-    fn source(&self) -> &str { "ratatui::widgets::Scrollbar" }
-    fn interactive(&self) -> bool { true }
+    fn group(&self) -> &str {
+        "Scrollbar"
+    }
+    fn name(&self) -> &str {
+        "Horizontal"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Scrollbar"
+    }
+    fn interactive(&self) -> bool {
+        true
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let wide_line = "← This line is very long and demonstrates horizontal scrolling. \
@@ -137,8 +152,7 @@ impl Ingredient for ScrollbarHorizontal {
             .scroll((0, self.position as u16))
             .render(area, buf);
 
-        let mut scrollbar_state = ScrollbarState::new(wide_line.len())
-            .position(self.position);
+        let mut scrollbar_state = ScrollbarState::new(wide_line.len()).position(self.position);
 
         RatatuiScrollbar::new(ScrollbarOrientation::HorizontalBottom)
             .thumb_style(Style::default().fg(MOCHA.accent))

@@ -6,16 +6,13 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(BarChartDefault),
-            Box::new(BarChartHighLoad),
-        ]
+        vec![Box::new(BarChartDefault), Box::new(BarChartHighLoad)]
     }
 }
 
@@ -24,9 +21,15 @@ pub mod ingredient {
 struct BarChartDefault;
 
 impl Ingredient for BarChartDefault {
-    fn group(&self) -> &str { "Bar Chart" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "ratatui::widgets::BarChart" }
+    fn group(&self) -> &str {
+        "Bar Chart"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::BarChart"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let data = [
@@ -60,9 +63,15 @@ impl Ingredient for BarChartDefault {
 struct BarChartHighLoad;
 
 impl Ingredient for BarChartHighLoad {
-    fn group(&self) -> &str { "Bar Chart" }
-    fn name(&self) -> &str { "High Load" }
-    fn source(&self) -> &str { "ratatui::widgets::BarChart" }
+    fn group(&self) -> &str {
+        "Bar Chart"
+    }
+    fn name(&self) -> &str {
+        "High Load"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::BarChart"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let data = [

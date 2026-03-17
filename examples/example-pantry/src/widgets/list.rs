@@ -15,10 +15,7 @@ pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(ListDefault::new()),
-            Box::new(ListEmpty),
-        ]
+        vec![Box::new(ListDefault::new()), Box::new(ListEmpty)]
     }
 }
 
@@ -54,10 +51,18 @@ impl ListDefault {
 }
 
 impl Ingredient for ListDefault {
-    fn group(&self) -> &str { "List" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "ratatui::widgets::List" }
-    fn interactive(&self) -> bool { true }
+    fn group(&self) -> &str {
+        "List"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::List"
+    }
+    fn interactive(&self) -> bool {
+        true
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let items: Vec<ListItem> = self
@@ -93,12 +98,14 @@ impl Ingredient for ListDefault {
         match code {
             KeyCode::Up | KeyCode::Char('k') => {
                 let i = self.state.selected().unwrap_or(0);
-                self.state.select(Some(if i == 0 { len.saturating_sub(1) } else { i - 1 }));
+                self.state
+                    .select(Some(if i == 0 { len.saturating_sub(1) } else { i - 1 }));
                 true
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 let i = self.state.selected().unwrap_or(0);
-                self.state.select(Some(if i >= len - 1 { 0 } else { i + 1 }));
+                self.state
+                    .select(Some(if i >= len - 1 { 0 } else { i + 1 }));
                 true
             }
             _ => false,
@@ -111,9 +118,15 @@ impl Ingredient for ListDefault {
 struct ListEmpty;
 
 impl Ingredient for ListEmpty {
-    fn group(&self) -> &str { "List" }
-    fn name(&self) -> &str { "Empty" }
-    fn source(&self) -> &str { "ratatui::widgets::List" }
+    fn group(&self) -> &str {
+        "List"
+    }
+    fn name(&self) -> &str {
+        "Empty"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::List"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let list = RatatuiList::new(Vec::<ListItem>::new())

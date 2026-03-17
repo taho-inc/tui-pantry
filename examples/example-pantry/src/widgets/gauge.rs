@@ -24,10 +24,26 @@ pub mod ingredient {
 const DESCRIPTION: &str = "Horizontal progress bar with label";
 
 const PROPS: &[PropInfo] = &[
-    PropInfo { name: "ratio", ty: "f64", description: "Fill amount from 0.0 to 1.0" },
-    PropInfo { name: "label", ty: "Span", description: "Text centered over the bar" },
-    PropInfo { name: "gauge_style", ty: "Style", description: "Fill foreground and empty background" },
-    PropInfo { name: "block", ty: "Block", description: "Surrounding border and title" },
+    PropInfo {
+        name: "ratio",
+        ty: "f64",
+        description: "Fill amount from 0.0 to 1.0",
+    },
+    PropInfo {
+        name: "label",
+        ty: "Span",
+        description: "Text centered over the bar",
+    },
+    PropInfo {
+        name: "gauge_style",
+        ty: "Style",
+        description: "Fill foreground and empty background",
+    },
+    PropInfo {
+        name: "block",
+        ty: "Block",
+        description: "Surrounding border and title",
+    },
 ];
 
 fn render_gauge(label: &str, ratio: f64, area: Rect, buf: &mut Buffer) {
@@ -65,11 +81,21 @@ fn render_gauge(label: &str, ratio: f64, area: Rect, buf: &mut Buffer) {
 struct GaugeLow;
 
 impl Ingredient for GaugeLow {
-    fn group(&self) -> &str { "Gauge" }
-    fn name(&self) -> &str { "Low (green)" }
-    fn source(&self) -> &str { "ratatui::widgets::Gauge" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Gauge"
+    }
+    fn name(&self) -> &str {
+        "Low (green)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Gauge"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_gauge("CPU", 0.34, area, buf);
@@ -81,11 +107,21 @@ impl Ingredient for GaugeLow {
 struct GaugeMedium;
 
 impl Ingredient for GaugeMedium {
-    fn group(&self) -> &str { "Gauge" }
-    fn name(&self) -> &str { "Medium (yellow)" }
-    fn source(&self) -> &str { "ratatui::widgets::Gauge" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Gauge"
+    }
+    fn name(&self) -> &str {
+        "Medium (yellow)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Gauge"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_gauge("CPU", 0.74, area, buf);
@@ -97,11 +133,21 @@ impl Ingredient for GaugeMedium {
 struct GaugeHigh;
 
 impl Ingredient for GaugeHigh {
-    fn group(&self) -> &str { "Gauge" }
-    fn name(&self) -> &str { "High (red)" }
-    fn source(&self) -> &str { "ratatui::widgets::Gauge" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Gauge"
+    }
+    fn name(&self) -> &str {
+        "High (red)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Gauge"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_gauge("CPU", 0.92, area, buf);
@@ -113,18 +159,24 @@ impl Ingredient for GaugeHigh {
 struct GaugeStacked;
 
 impl Ingredient for GaugeStacked {
-    fn group(&self) -> &str { "Gauge" }
-    fn name(&self) -> &str { "Stacked (3-up)" }
-    fn source(&self) -> &str { "ratatui::widgets::Gauge" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Gauge"
+    }
+    fn name(&self) -> &str {
+        "Stacked (3-up)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Gauge"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        let gauges: &[(&str, f64)] = &[
-            ("CPU", 0.34),
-            ("Memory", 0.71),
-            ("Disk", 0.88),
-        ];
+        let gauges: &[(&str, f64)] = &[("CPU", 0.34), ("Memory", 0.71), ("Disk", 0.88)];
 
         let constraints: Vec<Constraint> = gauges.iter().map(|_| Constraint::Length(3)).collect();
         let rows = Layout::vertical(constraints).split(area);

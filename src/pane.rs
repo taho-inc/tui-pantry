@@ -5,8 +5,8 @@ use ratatui::{
     widgets::{Block, Borders, Widget},
 };
 
-use crate::theme::PantryTheme;
 use crate::Ingredient;
+use crate::theme::PantryTheme;
 
 /// Chrome wrapper that renders a titled border around an ingredient.
 pub struct Pane<'a> {

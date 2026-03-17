@@ -10,16 +10,13 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(CanvasShapes),
-            Box::new(CanvasMap),
-        ]
+        vec![Box::new(CanvasShapes), Box::new(CanvasMap)]
     }
 }
 
@@ -28,9 +25,15 @@ pub mod ingredient {
 struct CanvasShapes;
 
 impl Ingredient for CanvasShapes {
-    fn group(&self) -> &str { "Canvas" }
-    fn name(&self) -> &str { "Shapes" }
-    fn source(&self) -> &str { "ratatui::widgets::canvas::Canvas" }
+    fn group(&self) -> &str {
+        "Canvas"
+    }
+    fn name(&self) -> &str {
+        "Shapes"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::canvas::Canvas"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         RatatuiCanvas::default()
@@ -82,9 +85,15 @@ impl Ingredient for CanvasShapes {
 struct CanvasMap;
 
 impl Ingredient for CanvasMap {
-    fn group(&self) -> &str { "Canvas" }
-    fn name(&self) -> &str { "World Map" }
-    fn source(&self) -> &str { "ratatui::widgets::canvas::Canvas" }
+    fn group(&self) -> &str {
+        "Canvas"
+    }
+    fn name(&self) -> &str {
+        "World Map"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::canvas::Canvas"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         RatatuiCanvas::default()

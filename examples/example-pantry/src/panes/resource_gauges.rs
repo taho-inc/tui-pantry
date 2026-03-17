@@ -25,8 +25,11 @@ struct Metric {
 }
 
 fn render_gauges(metrics: &[Metric], area: Rect, buf: &mut Buffer) {
-    let cols = Layout::horizontal(vec![Constraint::Ratio(1, metrics.len() as u32); metrics.len()])
-        .split(area);
+    let cols = Layout::horizontal(vec![
+        Constraint::Ratio(1, metrics.len() as u32);
+        metrics.len()
+    ])
+    .split(area);
 
     for (metric, col) in metrics.iter().zip(cols.iter()) {
         let color = MOCHA.ratio_color(metric.ratio as f32);
@@ -49,19 +52,42 @@ fn render_gauges(metrics: &[Metric], area: Rect, buf: &mut Buffer) {
 struct ResourceGaugesHealthy;
 
 const HEALTHY: &[Metric] = &[
-    Metric { label: "CPU", ratio: 0.34 },
-    Metric { label: "Memory", ratio: 0.52 },
-    Metric { label: "Disk", ratio: 0.41 },
+    Metric {
+        label: "CPU",
+        ratio: 0.34,
+    },
+    Metric {
+        label: "Memory",
+        ratio: 0.52,
+    },
+    Metric {
+        label: "Disk",
+        ratio: 0.41,
+    },
 ];
 
 impl Ingredient for ResourceGaugesHealthy {
-    fn tab(&self) -> &str { "Panes" }
-    fn group(&self) -> &str { "Resource Gauges" }
-    fn name(&self) -> &str { "Healthy" }
-    fn source(&self) -> &str { "example_pantry::panes::resource_gauges" }
+    fn tab(&self) -> &str {
+        "Panes"
+    }
+    fn group(&self) -> &str {
+        "Resource Gauges"
+    }
+    fn name(&self) -> &str {
+        "Healthy"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::panes::resource_gauges"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(GaugeStrip(HEALTHY), Some(Constraint::Max(60)), Some(Constraint::Length(3)), area, buf);
+        render_centered(
+            GaugeStrip(HEALTHY),
+            Some(Constraint::Max(60)),
+            Some(Constraint::Length(3)),
+            area,
+            buf,
+        );
     }
 }
 
@@ -70,19 +96,42 @@ impl Ingredient for ResourceGaugesHealthy {
 struct ResourceGaugesStressed;
 
 const STRESSED: &[Metric] = &[
-    Metric { label: "CPU", ratio: 0.92 },
-    Metric { label: "Memory", ratio: 0.87 },
-    Metric { label: "Disk", ratio: 0.76 },
+    Metric {
+        label: "CPU",
+        ratio: 0.92,
+    },
+    Metric {
+        label: "Memory",
+        ratio: 0.87,
+    },
+    Metric {
+        label: "Disk",
+        ratio: 0.76,
+    },
 ];
 
 impl Ingredient for ResourceGaugesStressed {
-    fn tab(&self) -> &str { "Panes" }
-    fn group(&self) -> &str { "Resource Gauges" }
-    fn name(&self) -> &str { "Stressed" }
-    fn source(&self) -> &str { "example_pantry::panes::resource_gauges" }
+    fn tab(&self) -> &str {
+        "Panes"
+    }
+    fn group(&self) -> &str {
+        "Resource Gauges"
+    }
+    fn name(&self) -> &str {
+        "Stressed"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::panes::resource_gauges"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(GaugeStrip(STRESSED), Some(Constraint::Max(60)), Some(Constraint::Length(3)), area, buf);
+        render_centered(
+            GaugeStrip(STRESSED),
+            Some(Constraint::Max(60)),
+            Some(Constraint::Length(3)),
+            area,
+            buf,
+        );
     }
 }
 

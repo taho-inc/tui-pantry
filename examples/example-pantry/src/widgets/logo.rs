@@ -9,11 +9,7 @@ pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(LogoSmall),
-            Box::new(LogoTiny),
-            Box::new(Mascot),
-        ]
+        vec![Box::new(LogoSmall), Box::new(LogoTiny), Box::new(Mascot)]
     }
 }
 
@@ -22,9 +18,15 @@ pub mod ingredient {
 struct LogoSmall;
 
 impl Ingredient for LogoSmall {
-    fn group(&self) -> &str { "Logo & Mascot" }
-    fn name(&self) -> &str { "Logo (small)" }
-    fn source(&self) -> &str { "ratatui::widgets::RatatuiLogo" }
+    fn group(&self) -> &str {
+        "Logo & Mascot"
+    }
+    fn name(&self) -> &str {
+        "Logo (small)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::RatatuiLogo"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_centered(
@@ -42,9 +44,15 @@ impl Ingredient for LogoSmall {
 struct LogoTiny;
 
 impl Ingredient for LogoTiny {
-    fn group(&self) -> &str { "Logo & Mascot" }
-    fn name(&self) -> &str { "Logo (tiny)" }
-    fn source(&self) -> &str { "ratatui::widgets::RatatuiLogo" }
+    fn group(&self) -> &str {
+        "Logo & Mascot"
+    }
+    fn name(&self) -> &str {
+        "Logo (tiny)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::RatatuiLogo"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_centered(
@@ -62,9 +70,15 @@ impl Ingredient for LogoTiny {
 struct Mascot;
 
 impl Ingredient for Mascot {
-    fn group(&self) -> &str { "Logo & Mascot" }
-    fn name(&self) -> &str { "Mascot" }
-    fn source(&self) -> &str { "ratatui::widgets::RatatuiMascot" }
+    fn group(&self) -> &str {
+        "Logo & Mascot"
+    }
+    fn name(&self) -> &str {
+        "Mascot"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::RatatuiMascot"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_centered(

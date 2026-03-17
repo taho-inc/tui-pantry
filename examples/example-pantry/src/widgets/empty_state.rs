@@ -24,9 +24,21 @@ pub mod ingredient {
 const DESCRIPTION: &str = "Placeholder for panels awaiting data";
 
 const PROPS: &[PropInfo] = &[
-    PropInfo { name: "icon", ty: "&str", description: "Symbol or emoji above the title" },
-    PropInfo { name: "title", ty: "&str", description: "Primary message" },
-    PropInfo { name: "hint", ty: "&str", description: "Secondary guidance text" },
+    PropInfo {
+        name: "icon",
+        ty: "&str",
+        description: "Symbol or emoji above the title",
+    },
+    PropInfo {
+        name: "title",
+        ty: "&str",
+        description: "Primary message",
+    },
+    PropInfo {
+        name: "hint",
+        ty: "&str",
+        description: "Secondary guidance text",
+    },
 ];
 
 struct EmptyContent {
@@ -41,7 +53,9 @@ struct EmptyWidget(&'static EmptyContent);
 impl Widget for EmptyWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let c = self.0;
-        if area.height < 3 { return; }
+        if area.height < 3 {
+            return;
+        }
 
         let icon_y = area.y;
         let title_y = area.y + 1;
@@ -49,18 +63,44 @@ impl Widget for EmptyWidget {
 
         Line::from(Span::styled(c.icon, Style::default().fg(c.title_color)))
             .centered()
-            .render(Rect { y: icon_y, height: 1, ..area }, buf);
+            .render(
+                Rect {
+                    y: icon_y,
+                    height: 1,
+                    ..area
+                },
+                buf,
+            );
 
         Line::from(Span::styled(
             c.title,
-            Style::default().fg(c.title_color).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(c.title_color)
+                .add_modifier(Modifier::BOLD),
         ))
         .centered()
-        .render(Rect { y: title_y, height: 1, ..area }, buf);
+        .render(
+            Rect {
+                y: title_y,
+                height: 1,
+                ..area
+            },
+            buf,
+        );
 
-        Line::from(Span::styled(c.hint, Style::default().fg(MOCHA.text_disabled)))
-            .centered()
-            .render(Rect { y: hint_y, height: 1, ..area }, buf);
+        Line::from(Span::styled(
+            c.hint,
+            Style::default().fg(MOCHA.text_disabled),
+        ))
+        .centered()
+        .render(
+            Rect {
+                y: hint_y,
+                height: 1,
+                ..area
+            },
+            buf,
+        );
     }
 }
 
@@ -76,14 +116,30 @@ const NO_DATA: EmptyContent = EmptyContent {
 };
 
 impl Ingredient for EmptyStateNoData {
-    fn group(&self) -> &str { "Empty State" }
-    fn name(&self) -> &str { "No Data" }
-    fn source(&self) -> &str { "example_pantry::widgets::empty_state" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Empty State"
+    }
+    fn name(&self) -> &str {
+        "No Data"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::empty_state"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(EmptyWidget(&NO_DATA), None, Some(Constraint::Length(3)), area, buf);
+        render_centered(
+            EmptyWidget(&NO_DATA),
+            None,
+            Some(Constraint::Length(3)),
+            area,
+            buf,
+        );
     }
 }
 
@@ -99,14 +155,30 @@ const LOADING: EmptyContent = EmptyContent {
 };
 
 impl Ingredient for EmptyStateLoading {
-    fn group(&self) -> &str { "Empty State" }
-    fn name(&self) -> &str { "Loading" }
-    fn source(&self) -> &str { "example_pantry::widgets::empty_state" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Empty State"
+    }
+    fn name(&self) -> &str {
+        "Loading"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::empty_state"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(EmptyWidget(&LOADING), None, Some(Constraint::Length(3)), area, buf);
+        render_centered(
+            EmptyWidget(&LOADING),
+            None,
+            Some(Constraint::Length(3)),
+            area,
+            buf,
+        );
     }
 }
 
@@ -122,13 +194,29 @@ const ERROR: EmptyContent = EmptyContent {
 };
 
 impl Ingredient for EmptyStateError {
-    fn group(&self) -> &str { "Empty State" }
-    fn name(&self) -> &str { "Error" }
-    fn source(&self) -> &str { "example_pantry::widgets::empty_state" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Empty State"
+    }
+    fn name(&self) -> &str {
+        "Error"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::empty_state"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        render_centered(EmptyWidget(&ERROR), None, Some(Constraint::Length(3)), area, buf);
+        render_centered(
+            EmptyWidget(&ERROR),
+            None,
+            Some(Constraint::Length(3)),
+            area,
+            buf,
+        );
     }
 }

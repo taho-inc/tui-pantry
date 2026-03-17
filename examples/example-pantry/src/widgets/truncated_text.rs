@@ -13,18 +13,23 @@ pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(TruncatedSingleLine),
-            Box::new(TruncatedMultiLine),
-        ]
+        vec![Box::new(TruncatedSingleLine), Box::new(TruncatedMultiLine)]
     }
 }
 
 const DESCRIPTION: &str = "Ellipsis truncation for overflow text";
 
 const PROPS: &[PropInfo] = &[
-    PropInfo { name: "max_width", ty: "usize", description: "Character limit before truncation" },
-    PropInfo { name: "ellipsis", ty: "char", description: "Suffix character when truncated (…)" },
+    PropInfo {
+        name: "max_width",
+        ty: "usize",
+        description: "Character limit before truncation",
+    },
+    PropInfo {
+        name: "ellipsis",
+        ty: "char",
+        description: "Suffix character when truncated (…)",
+    },
 ];
 
 fn truncate_line(text: &str, max_width: usize) -> Line<'_> {
@@ -46,16 +51,27 @@ struct TruncatedSingleLine;
 const LONG_LINE: &str = "The Fabric is a self-forming peer-to-peer network that streams, compiles, and runs AI/ML workloads across distributed nodes with content-addressed storage";
 
 impl Ingredient for TruncatedSingleLine {
-    fn group(&self) -> &str { "Truncated Text" }
-    fn name(&self) -> &str { "Single Line" }
-    fn source(&self) -> &str { "example_pantry::widgets::truncated_text" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Truncated Text"
+    }
+    fn name(&self) -> &str {
+        "Single Line"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::truncated_text"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        if area.height == 0 { return; }
-        truncate_line(LONG_LINE, area.width as usize)
-            .render(Rect { height: 1, ..area }, buf);
+        if area.height == 0 {
+            return;
+        }
+        truncate_line(LONG_LINE, area.width as usize).render(Rect { height: 1, ..area }, buf);
     }
 }
 
@@ -72,19 +88,37 @@ const LINES: &[&str] = &[
 ];
 
 impl Ingredient for TruncatedMultiLine {
-    fn group(&self) -> &str { "Truncated Text" }
-    fn name(&self) -> &str { "Multi Line" }
-    fn source(&self) -> &str { "example_pantry::widgets::truncated_text" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Truncated Text"
+    }
+    fn name(&self) -> &str {
+        "Multi Line"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::truncated_text"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let width = area.width as usize;
         for (i, line) in LINES.iter().enumerate() {
             let y = area.y + (i as u16) * 2;
-            if y >= area.bottom() { break; }
-            truncate_line(line, width)
-                .render(Rect { y, height: 1, ..area }, buf);
+            if y >= area.bottom() {
+                break;
+            }
+            truncate_line(line, width).render(
+                Rect {
+                    y,
+                    height: 1,
+                    ..area
+                },
+                buf,
+            );
         }
     }
 }

@@ -13,10 +13,7 @@ pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(KeyValueDefault),
-            Box::new(KeyValueDense),
-        ]
+        vec![Box::new(KeyValueDefault), Box::new(KeyValueDense)]
     }
 }
 
@@ -49,8 +46,16 @@ fn render_entries(entries: &[Entry], spacing: u16, area: Rect, buf: &mut Buffer)
 const DESCRIPTION: &str = "Right-aligned labels with bold values, spaced for scannability";
 
 const PROPS: &[PropInfo] = &[
-    PropInfo { name: "label_width", ty: "usize", description: "Derived from longest label for alignment" },
-    PropInfo { name: "spacing", ty: "u16", description: "Vertical gap between entries" },
+    PropInfo {
+        name: "label_width",
+        ty: "usize",
+        description: "Derived from longest label for alignment",
+    },
+    PropInfo {
+        name: "spacing",
+        ty: "u16",
+        description: "Vertical gap between entries",
+    },
 ];
 
 // ── Default ──
@@ -58,19 +63,44 @@ const PROPS: &[PropInfo] = &[
 struct KeyValueDefault;
 
 const SAMPLE_ENTRIES: &[Entry] = &[
-    Entry { label: "Node ID", value: "taho-7f3a9b" },
-    Entry { label: "Region", value: "us-east-1" },
-    Entry { label: "Uptime", value: "14d 7h 32m" },
-    Entry { label: "Peers", value: "23" },
-    Entry { label: "Version", value: "0.4.1-rc.2" },
+    Entry {
+        label: "Node ID",
+        value: "taho-7f3a9b",
+    },
+    Entry {
+        label: "Region",
+        value: "us-east-1",
+    },
+    Entry {
+        label: "Uptime",
+        value: "14d 7h 32m",
+    },
+    Entry {
+        label: "Peers",
+        value: "23",
+    },
+    Entry {
+        label: "Version",
+        value: "0.4.1-rc.2",
+    },
 ];
 
 impl Ingredient for KeyValueDefault {
-    fn group(&self) -> &str { "Key Value" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "example_pantry::widgets::key_value" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Key Value"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::key_value"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_entries(SAMPLE_ENTRIES, 2, area, buf);
@@ -82,11 +112,21 @@ impl Ingredient for KeyValueDefault {
 struct KeyValueDense;
 
 impl Ingredient for KeyValueDense {
-    fn group(&self) -> &str { "Key Value" }
-    fn name(&self) -> &str { "Dense" }
-    fn source(&self) -> &str { "example_pantry::widgets::key_value" }
-    fn description(&self) -> &str { DESCRIPTION }
-    fn props(&self) -> &[PropInfo] { PROPS }
+    fn group(&self) -> &str {
+        "Key Value"
+    }
+    fn name(&self) -> &str {
+        "Dense"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::widgets::key_value"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_entries(SAMPLE_ENTRIES, 1, area, buf);

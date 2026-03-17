@@ -56,9 +56,15 @@ fn render_line_gauge(label: &str, ratio: f64, area: Rect, buf: &mut Buffer) {
 struct LineGaugeLow;
 
 impl Ingredient for LineGaugeLow {
-    fn group(&self) -> &str { "Line Gauge" }
-    fn name(&self) -> &str { "Low (green)" }
-    fn source(&self) -> &str { "ratatui::widgets::LineGauge" }
+    fn group(&self) -> &str {
+        "Line Gauge"
+    }
+    fn name(&self) -> &str {
+        "Low (green)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::LineGauge"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_line_gauge("Bandwidth", 0.34, area, buf);
@@ -70,9 +76,15 @@ impl Ingredient for LineGaugeLow {
 struct LineGaugeMedium;
 
 impl Ingredient for LineGaugeMedium {
-    fn group(&self) -> &str { "Line Gauge" }
-    fn name(&self) -> &str { "Medium (yellow)" }
-    fn source(&self) -> &str { "ratatui::widgets::LineGauge" }
+    fn group(&self) -> &str {
+        "Line Gauge"
+    }
+    fn name(&self) -> &str {
+        "Medium (yellow)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::LineGauge"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_line_gauge("Bandwidth", 0.74, area, buf);
@@ -84,9 +96,15 @@ impl Ingredient for LineGaugeMedium {
 struct LineGaugeHigh;
 
 impl Ingredient for LineGaugeHigh {
-    fn group(&self) -> &str { "Line Gauge" }
-    fn name(&self) -> &str { "High (red)" }
-    fn source(&self) -> &str { "ratatui::widgets::LineGauge" }
+    fn group(&self) -> &str {
+        "Line Gauge"
+    }
+    fn name(&self) -> &str {
+        "High (red)"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::LineGauge"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_line_gauge("Bandwidth", 0.92, area, buf);

@@ -12,7 +12,7 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
@@ -62,12 +62,12 @@ fn log_line_style(line: &str) -> Style {
 // ── Peer locations for map overlay ──
 
 const PEER_LOCATIONS: &[(f64, f64)] = &[
-    (-74.0, 40.7),   // us-east (New York)
-    (-122.4, 37.8),  // us-west (San Francisco)
-    (-0.1, 51.5),    // eu-west (London)
-    (77.2, 28.6),    // ap-south (Delhi)
-    (139.7, 35.7),   // ap-east (Tokyo)
-    (2.3, 48.9),     // eu-west (Paris)
+    (-74.0, 40.7),  // us-east (New York)
+    (-122.4, 37.8), // us-west (San Francisco)
+    (-0.1, 51.5),   // eu-west (London)
+    (77.2, 28.6),   // ap-south (Delhi)
+    (139.7, 35.7),  // ap-east (Tokyo)
+    (2.3, 48.9),    // eu-west (Paris)
 ];
 
 // ── Explorer Default (interactive) ──
@@ -83,11 +83,21 @@ impl ExplorerDefault {
 }
 
 impl Ingredient for ExplorerDefault {
-    fn tab(&self) -> &str { "Views" }
-    fn group(&self) -> &str { "Explorer" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "example_pantry::views::explorer" }
-    fn interactive(&self) -> bool { true }
+    fn tab(&self) -> &str {
+        "Views"
+    }
+    fn group(&self) -> &str {
+        "Explorer"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::views::explorer"
+    }
+    fn interactive(&self) -> bool {
+        true
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let [map_col, log_col] =
@@ -139,8 +149,8 @@ impl Ingredient for ExplorerDefault {
             .scroll((self.scroll_position as u16, 0))
             .render(log_col, buf);
 
-        let mut scrollbar_state = ScrollbarState::new(LOG_LINES.len())
-            .position(self.scroll_position);
+        let mut scrollbar_state =
+            ScrollbarState::new(LOG_LINES.len()).position(self.scroll_position);
 
         Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .thumb_style(Style::default().fg(MOCHA.accent))

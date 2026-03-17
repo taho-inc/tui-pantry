@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "Proc macros for tui-pantry — not intended for direct use"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/taho-inc/taho"
+repository = "https://github.com/taho-inc/tui-pantry"
 
 [lib]
 proc-macro = true

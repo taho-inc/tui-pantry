@@ -6,16 +6,13 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(MonitoringDefault),
-            Box::new(MonitoringAlert),
-        ]
+        vec![Box::new(MonitoringDefault), Box::new(MonitoringAlert)]
     }
 }
 
@@ -47,10 +44,7 @@ fn render_metric(metric: &MetricPanel, area: Rect, buf: &mut Buffer) {
     Sparkline::default()
         .data(metric.history)
         .style(Style::default().fg(metric.spark_color).bg(MOCHA.surface))
-        .block(
-            Block::bordered()
-                .border_style(Style::default().fg(MOCHA.border)),
-        )
+        .block(Block::bordered().border_style(Style::default().fg(MOCHA.border)))
         .render(spark_row, buf);
 }
 
@@ -62,34 +56,54 @@ const HEALTHY_METRICS: &[MetricPanel] = &[
     MetricPanel {
         label: "CPU",
         ratio: 0.34,
-        history: &[3, 4, 3, 5, 4, 3, 4, 3, 5, 4, 3, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 3],
+        history: &[
+            3, 4, 3, 5, 4, 3, 4, 3, 5, 4, 3, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4,
+            3,
+        ],
         spark_color: accent::GREEN,
     },
     MetricPanel {
         label: "Memory",
         ratio: 0.52,
-        history: &[5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 6, 5, 5, 5, 5, 6, 5, 5, 5, 5, 6, 5, 5, 5, 6, 5, 5, 5, 5],
+        history: &[
+            5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 6, 5, 5, 5, 5, 6, 5, 5, 5, 5, 6, 5, 5, 5, 6, 5, 5, 5,
+            5,
+        ],
         spark_color: accent::BLUE,
     },
     MetricPanel {
         label: "Network I/O",
         ratio: 0.28,
-        history: &[2, 4, 1, 5, 3, 2, 4, 1, 3, 5, 2, 4, 1, 3, 2, 4, 1, 5, 3, 2, 4, 1, 3, 5, 2, 4, 1, 3, 2, 4],
+        history: &[
+            2, 4, 1, 5, 3, 2, 4, 1, 3, 5, 2, 4, 1, 3, 2, 4, 1, 5, 3, 2, 4, 1, 3, 5, 2, 4, 1, 3, 2,
+            4,
+        ],
         spark_color: accent::TEAL,
     },
     MetricPanel {
         label: "Disk",
         ratio: 0.41,
-        history: &[4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        history: &[
+            4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5,
+        ],
         spark_color: accent::LAVENDER,
     },
 ];
 
 impl Ingredient for MonitoringDefault {
-    fn tab(&self) -> &str { "Views" }
-    fn group(&self) -> &str { "Monitoring" }
-    fn name(&self) -> &str { "Healthy" }
-    fn source(&self) -> &str { "example_pantry::views::monitoring" }
+    fn tab(&self) -> &str {
+        "Views"
+    }
+    fn group(&self) -> &str {
+        "Monitoring"
+    }
+    fn name(&self) -> &str {
+        "Healthy"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::views::monitoring"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let cols = Layout::horizontal(vec![Constraint::Ratio(1, 4); 4]).split(area);
@@ -108,34 +122,54 @@ const ALERT_METRICS: &[MetricPanel] = &[
     MetricPanel {
         label: "CPU",
         ratio: 0.92,
-        history: &[5, 6, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+        history: &[
+            5, 6, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9,
+        ],
         spark_color: accent::RED,
     },
     MetricPanel {
         label: "Memory",
         ratio: 0.87,
-        history: &[5, 5, 6, 6, 7, 7, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+        history: &[
+            5, 5, 6, 6, 7, 7, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9,
+        ],
         spark_color: accent::RED,
     },
     MetricPanel {
         label: "Network I/O",
         ratio: 0.76,
-        history: &[3, 4, 5, 6, 7, 7, 8, 8, 7, 8, 8, 7, 8, 7, 8, 8, 7, 8, 8, 7, 8, 7, 8, 8, 7, 8, 8, 7, 8, 8],
+        history: &[
+            3, 4, 5, 6, 7, 7, 8, 8, 7, 8, 8, 7, 8, 7, 8, 8, 7, 8, 8, 7, 8, 7, 8, 8, 7, 8, 8, 7, 8,
+            8,
+        ],
         spark_color: accent::YELLOW,
     },
     MetricPanel {
         label: "Disk",
         ratio: 0.44,
-        history: &[4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        history: &[
+            4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5,
+        ],
         spark_color: accent::LAVENDER,
     },
 ];
 
 impl Ingredient for MonitoringAlert {
-    fn tab(&self) -> &str { "Views" }
-    fn group(&self) -> &str { "Monitoring" }
-    fn name(&self) -> &str { "Alert" }
-    fn source(&self) -> &str { "example_pantry::views::monitoring" }
+    fn tab(&self) -> &str {
+        "Views"
+    }
+    fn group(&self) -> &str {
+        "Monitoring"
+    }
+    fn name(&self) -> &str {
+        "Alert"
+    }
+    fn source(&self) -> &str {
+        "example_pantry::views::monitoring"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let cols = Layout::horizontal(vec![Constraint::Ratio(1, 4); 4]).split(area);

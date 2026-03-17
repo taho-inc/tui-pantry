@@ -24,10 +24,7 @@ fn render_tabs(titles: &[&str], selected: usize, area: Rect, buf: &mut Buffer) {
     let [row] = Layout::vertical([Constraint::Length(3)]).areas(area);
 
     RatatuiTabs::new(titles.iter().copied())
-        .block(
-            Block::bordered()
-                .border_style(Style::default().fg(MOCHA.border)),
-        )
+        .block(Block::bordered().border_style(Style::default().fg(MOCHA.border)))
         .style(Style::default().fg(MOCHA.text_dim).bg(MOCHA.surface))
         .highlight_style(
             Style::default()
@@ -43,9 +40,15 @@ fn render_tabs(titles: &[&str], selected: usize, area: Rect, buf: &mut Buffer) {
 struct TabsDefault;
 
 impl Ingredient for TabsDefault {
-    fn group(&self) -> &str { "Tabs" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "ratatui::widgets::Tabs" }
+    fn group(&self) -> &str {
+        "Tabs"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Tabs"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_tabs(&["Overview", "Details", "Settings"], 0, area, buf);
@@ -57,13 +60,27 @@ impl Ingredient for TabsDefault {
 struct TabsMany;
 
 impl Ingredient for TabsMany {
-    fn group(&self) -> &str { "Tabs" }
-    fn name(&self) -> &str { "Many Tabs" }
-    fn source(&self) -> &str { "ratatui::widgets::Tabs" }
+    fn group(&self) -> &str {
+        "Tabs"
+    }
+    fn name(&self) -> &str {
+        "Many Tabs"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Tabs"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_tabs(
-            &["Home", "Nodes", "Network", "Content", "Inference", "Events", "Config"],
+            &[
+                "Home",
+                "Nodes",
+                "Network",
+                "Content",
+                "Inference",
+                "Events",
+                "Config",
+            ],
             2,
             area,
             buf,
@@ -76,9 +93,15 @@ impl Ingredient for TabsMany {
 struct TabsSingle;
 
 impl Ingredient for TabsSingle {
-    fn group(&self) -> &str { "Tabs" }
-    fn name(&self) -> &str { "Single Tab" }
-    fn source(&self) -> &str { "ratatui::widgets::Tabs" }
+    fn group(&self) -> &str {
+        "Tabs"
+    }
+    fn name(&self) -> &str {
+        "Single Tab"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Tabs"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         render_tabs(&["Dashboard"], 0, area, buf);

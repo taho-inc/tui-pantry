@@ -11,36 +11,42 @@ pub struct PantryTheme {
     pub border: Color,
     pub text: Color,
     pub text_dim: Color,
-    /// Background gradient left endpoint.
-    pub gradient_left: (f32, f32, f32),
-    /// Background gradient right endpoint.
-    pub gradient_right: (f32, f32, f32),
+    /// Whether this is dark mode.
+    pub dark: bool,
 }
 
 impl PantryTheme {
+    /// Catppuccin Mocha
     pub const fn dark() -> Self {
         Self {
-            accent: Color::Rgb(120, 52, 245),
-            panel_bg: Color::Rgb(13, 13, 13),
-            cursor_bg: Color::Rgb(30, 14, 58),
-            border: Color::Rgb(61, 61, 61),
-            text: Color::White,
-            text_dim: Color::DarkGray,
-            gradient_left: (120.0, 52.0, 245.0),
-            gradient_right: (46.0, 21.0, 116.0),
+            accent: Color::Rgb(203, 166, 247),   // Mauve
+            panel_bg: Color::Rgb(30, 30, 46),    // Base
+            cursor_bg: Color::Rgb(49, 50, 68),   // Surface0
+            border: Color::Rgb(69, 71, 90),      // Surface1
+            text: Color::Rgb(205, 214, 244),     // Text
+            text_dim: Color::Rgb(108, 112, 134), // Overlay0
+            dark: true,
         }
     }
 
+    /// Catppuccin Latte
     pub const fn light() -> Self {
         Self {
-            accent: Color::Rgb(120, 52, 245),
-            panel_bg: Color::Rgb(245, 245, 245),
-            cursor_bg: Color::Rgb(237, 229, 252),
-            border: Color::Rgb(212, 212, 212),
-            text: Color::Rgb(30, 30, 46),
-            text_dim: Color::Rgb(136, 136, 136),
-            gradient_left: (200.0, 180.0, 245.0),
-            gradient_right: (220.0, 210.0, 250.0),
+            accent: Color::Rgb(136, 57, 239),     // Mauve
+            panel_bg: Color::Rgb(239, 241, 245),  // Base
+            cursor_bg: Color::Rgb(204, 208, 218), // Surface0
+            border: Color::Rgb(188, 192, 204),    // Surface1
+            text: Color::Rgb(76, 79, 105),        // Text
+            text_dim: Color::Rgb(108, 111, 133),  // Subtext0
+            dark: false,
+        }
+    }
+
+    pub fn toggle(&self) -> Self {
+        if self.dark {
+            Self::light()
+        } else {
+            Self::dark()
         }
     }
 
@@ -58,5 +64,52 @@ impl PantryTheme {
             "light" => Self::light(),
             _ => Self::dark(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toggle_switches_mode() {
+        let dark = PantryTheme::dark();
+        let light = dark.toggle();
+        assert!(!light.dark);
+        let back = light.toggle();
+        assert!(back.dark);
+    }
+
+    #[test]
+    fn from_toml_defaults_to_dark() {
+        let table: toml::Table = "".parse().unwrap();
+        assert!(PantryTheme::from_toml(&table).dark);
+    }
+
+    #[test]
+    fn from_toml_light() {
+        let table: toml::Table = r#"[config]
+theme = "light""#
+            .parse()
+            .unwrap();
+        assert!(!PantryTheme::from_toml(&table).dark);
+    }
+
+    #[test]
+    fn from_toml_case_insensitive() {
+        let table: toml::Table = r#"[config]
+theme = "LIGHT""#
+            .parse()
+            .unwrap();
+        assert!(!PantryTheme::from_toml(&table).dark);
+    }
+
+    #[test]
+    fn from_toml_unknown_defaults_to_dark() {
+        let table: toml::Table = r#"[config]
+theme = "solarized""#
+            .parse()
+            .unwrap();
+        assert!(PantryTheme::from_toml(&table).dark);
     }
 }

@@ -7,7 +7,7 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;
@@ -32,9 +32,15 @@ The library emphasizes composability and simplicity.";
 struct ParagraphWrapped;
 
 impl Ingredient for ParagraphWrapped {
-    fn group(&self) -> &str { "Paragraph" }
-    fn name(&self) -> &str { "Wrapped" }
-    fn source(&self) -> &str { "ratatui::widgets::Paragraph" }
+    fn group(&self) -> &str {
+        "Paragraph"
+    }
+    fn name(&self) -> &str {
+        "Wrapped"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Paragraph"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         RatatuiParagraph::new(SAMPLE_TEXT)
@@ -55,9 +61,15 @@ impl Ingredient for ParagraphWrapped {
 struct ParagraphAligned;
 
 impl Ingredient for ParagraphAligned {
-    fn group(&self) -> &str { "Paragraph" }
-    fn name(&self) -> &str { "Center Aligned" }
-    fn source(&self) -> &str { "ratatui::widgets::Paragraph" }
+    fn group(&self) -> &str {
+        "Paragraph"
+    }
+    fn name(&self) -> &str {
+        "Center Aligned"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Paragraph"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         RatatuiParagraph::new(SAMPLE_TEXT)
@@ -79,16 +91,32 @@ impl Ingredient for ParagraphAligned {
 struct ParagraphStyled;
 
 impl Ingredient for ParagraphStyled {
-    fn group(&self) -> &str { "Paragraph" }
-    fn name(&self) -> &str { "Styled Spans" }
-    fn source(&self) -> &str { "ratatui::widgets::Paragraph" }
+    fn group(&self) -> &str {
+        "Paragraph"
+    }
+    fn name(&self) -> &str {
+        "Styled Spans"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Paragraph"
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let lines = vec![
             Line::from(vec![
-                Span::styled("Ratatui", Style::default().fg(accent::MAUVE).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Ratatui",
+                    Style::default()
+                        .fg(accent::MAUVE)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" is a "),
-                Span::styled("Rust", Style::default().fg(accent::PEACH).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Rust",
+                    Style::default()
+                        .fg(accent::PEACH)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(" library for building "),
                 Span::styled("terminal UIs", Style::default().fg(accent::GREEN)),
                 Span::raw("."),
@@ -96,7 +124,10 @@ impl Ingredient for ParagraphStyled {
             Line::raw(""),
             Line::from(vec![
                 Span::raw("Status: "),
-                Span::styled("OK", Style::default().fg(MOCHA.ok).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "OK",
+                    Style::default().fg(MOCHA.ok).add_modifier(Modifier::BOLD),
+                ),
                 Span::raw("  Warnings: "),
                 Span::styled("2", Style::default().fg(MOCHA.warn)),
                 Span::raw("  Errors: "),

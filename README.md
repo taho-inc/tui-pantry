@@ -1,5 +1,8 @@
 # tui-pantry
 
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
+[![CI](https://img.shields.io/github/actions/workflow/status/taho-inc/tui-pantry/ci.yml?label=CI)](https://github.com/taho-inc/tui-pantry/actions)
+
 Storybook-like harness for previewing [ratatui](https://ratatui.rs) widgets in isolation. Generic library with zero application dependencies.
 
 ## Quick Start — Example Pantry
@@ -10,17 +13,11 @@ Run the bundled example to see tui-pantry in action with ratatui's stock widgets
 cargo run -p example-pantry
 ```
 
-The example showcases Block, Paragraph, List, Table, Tabs, Gauge, BarChart, and Sparkline with a complete color system and typography. Browse the [example source](examples/example-pantry/) for the full pattern.
+The example showcases Block, Paragraph, List, Table, Tabs, Gauge, LineGauge, BarChart, Sparkline, Scrollbar, Chart, Canvas, and Logo/Mascot widgets plus opinionated widgets (Key Value, Status Badge, Log Stream, Empty State, Truncated Text) and pane ingredients (Resource Gauges, Metric Panel, Activity Feed) with a complete color system and typography. Browse the [example source](examples/example-pantry/) for the full pattern.
 
 ## Installation
 
-Install the cargo subcommand:
-
-```bash
-cargo install --path .          # from the tui-pantry directory
-```
-
-Then add `tui-pantry` as an **optional** dependency in your widget crate:
+Add `tui-pantry` as an **optional** dependency in your widget crate:
 
 ```toml
 [features]
@@ -75,11 +72,7 @@ pub mod ingredient;
 
 ### 3. Run
 
-```bash
-cargo pantry                    # from your widget crate root
-```
-
-`cargo pantry` auto-creates `examples/pantry.rs` if missing, then runs `cargo run --example pantry --features pantry`. The example is a one-liner:
+Create `examples/widget_preview.rs` — a one-liner:
 
 ```rust
 fn main() -> std::io::Result<()> {
@@ -87,13 +80,38 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
+Then run it:
+
+```bash
+cargo run --example widget_preview --features pantry              # from your widget crate root
+cargo run --example widget_preview --features pantry -p my-widget  # target a specific workspace package
+```
+
 The `run!()` macro reads `pantry.toml` at compile time via a proc macro to discover ingredients, and at runtime to parse stylesheet entries. It takes ownership of the terminal, renders a two-pane browser (sidebar + live preview), and restores terminal state on exit. `tui-pantry` re-exports `ratatui` so ingredient authors don't need a separate dependency.
+
+#### Optional: `cargo pantry` subcommand
+
+For a shorter command, install the cargo subcommand:
+
+```bash
+cargo install tui-pantry          # from crates.io (once published)
+cargo install --path tui-pantry   # from a local checkout
+```
+
+Then:
+
+```bash
+cargo pantry                    # from your widget crate root
+cargo pantry -p my-widget       # target a specific workspace package
+```
+
+This auto-creates `examples/widget_preview.rs` if missing and delegates to `cargo run --example widget_preview --features pantry`.
 
 ## Concepts
 
 **Ingredients** are the unit of display — one "story" per widget configuration. They organize into:
 
-- **Tabs** — top-level categories: Widgets (default), Views, Styles
+- **Tabs** — top-level categories: Widgets (default), Panes, Views, Styles
 - **Groups** — the widget name, shown as a collapsible tree parent
 - **Variants** — specific configurations under a group
 
@@ -133,7 +151,7 @@ impl Ingredient for GaugeDefault {
 
 ### Interactive ingredient
 
-Set `interactive()` to `true` to receive keyboard input when the preview pane has focus. Press Enter in the sidebar to focus; Esc to return.
+Set `interactive()` to `true` to receive keyboard and mouse input when the preview pane has focus. Press Enter in the sidebar to focus; Esc to return.
 
 ```rust
 struct TableInteractive {
@@ -159,10 +177,22 @@ impl Ingredient for TableInteractive {
             _ => false,
         }
     }
+
+    fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> bool {
+        use tui_pantry::is_click;
+        if is_click(&event) && area.contains(Position::new(event.column, event.row)) {
+            let row = (event.row.saturating_sub(area.y + 1)) as usize;
+            if row < self.rows.len() {
+                self.selected = row;
+                return true;
+            }
+        }
+        false
+    }
 }
 ```
 
-Return `true` from `handle_key()` to consume the event, `false` to ignore it.
+Return `true` from `handle_key()` or `handle_mouse()` to consume the event, `false` to ignore it. The `is_click()` helper tests for left-click events.
 
 ### Tab assignment
 
@@ -188,11 +218,12 @@ fn tab(&self) -> &str { "Styles" }    // palettes, typography, tokens
 
 | Method | Default | Purpose |
 |--------|---------|---------|
-| `tab()` | `"Widgets"` | Top-level tab: `"Widgets"`, `"Views"`, or `"Styles"`. |
+| `tab()` | `"Widgets"` | Top-level tab: `"Widgets"`, `"Panes"`, `"Views"`, or `"Styles"`. |
 | `description()` | `""` | One-line summary displayed in the preview pane. |
 | `props()` | `&[]` | `PropInfo` slice documenting the widget's configurable surface. |
-| `interactive()` | `false` | Whether the preview pane captures keyboard input. |
+| `interactive()` | `false` | Whether the preview pane captures keyboard and mouse input. |
 | `handle_key()` | `false` | Process a key event while the preview pane has focus. |
+| `handle_mouse()` | `false` | Process a mouse event while the preview pane has focus. |
 
 ### PropInfo
 
@@ -204,7 +235,7 @@ pub struct PropInfo {
 }
 ```
 
-Props describe the widget's API, not a specific variant's data. Typically only the "Default" variant in a group returns them.
+Props describe the widget's API. All variants in a group should return the same props for consistent documentation.
 
 ## Registration
 
@@ -271,7 +302,7 @@ Set `theme` under `[config]` to switch the harness chrome between dark and light
 theme = "light"   # "dark" (default) or "light"
 ```
 
-Dark mode uses a purple gradient background with light text. Light mode uses a lavender gradient with dark text. The accent color (purple) is shared.
+Dark mode uses Catppuccin Mocha colors. Light mode uses Catppuccin Latte colors. The accent color (purple) is shared. Toggle at runtime with `t`.
 
 ## Stylesheet
 
@@ -352,7 +383,7 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | `Enter` | Toggle group or focus preview | — | — |
 | `f` | Enter fullscreen (when widget selected) | Enter fullscreen | Exit to sidebar |
 | `c` | Cycle color depth (24-bit → 256 → 16 → 8 → mono) | — | — |
-| `1` `2` `3` / `Tab` | Switch tabs | — | — |
+| `1-4` / `Tab` | Switch tabs | — | — |
 | `Esc` | Quit | Return to sidebar | Exit to sidebar |
 | `q` | Quit | — | — |
 
@@ -363,3 +394,4 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | Click sidebar entry | Navigate to entry and focus sidebar |
 | Click tab label | Switch to that tab |
 | Scroll wheel in sidebar | Navigate up/down |
+| Click/interact in preview | Forwarded to interactive ingredients via `handle_mouse()` |

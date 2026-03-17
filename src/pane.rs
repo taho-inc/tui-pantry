@@ -23,7 +23,12 @@ impl<'a> Pane<'a> {
         focused: bool,
         theme: &'a PantryTheme,
     ) -> Self {
-        Self { title, ingredient, focused, theme }
+        Self {
+            title,
+            ingredient,
+            focused,
+            theme,
+        }
     }
 }
 

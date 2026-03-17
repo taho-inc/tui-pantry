@@ -5,7 +5,7 @@ use ratatui::{
     style::{Modifier, Style},
     widgets::{Block, Cell, Row, StatefulWidget, Table as RatatuiTable, TableState},
 };
-use tui_pantry::Ingredient;
+use tui_pantry::{Ingredient, PropInfo};
 
 use crate::styles::MOCHA;
 
@@ -13,10 +13,7 @@ pub mod ingredient {
     use super::*;
 
     pub fn ingredients() -> Vec<Box<dyn Ingredient>> {
-        vec![
-            Box::new(TableDefault::new()),
-            Box::new(TableEmpty),
-        ]
+        vec![Box::new(TableDefault::new()), Box::new(TableEmpty)]
     }
 }
 
@@ -29,14 +26,54 @@ struct SampleRow {
 
 fn sample_rows() -> Vec<SampleRow> {
     vec![
-        SampleRow { name: "Paragraph", kind: "Widget", version: "0.30", status: "Stable" },
-        SampleRow { name: "List", kind: "Widget", version: "0.30", status: "Stable" },
-        SampleRow { name: "Table", kind: "Widget", version: "0.30", status: "Stable" },
-        SampleRow { name: "BarChart", kind: "Widget", version: "0.30", status: "Stable" },
-        SampleRow { name: "Canvas", kind: "Widget", version: "0.30", status: "Unstable" },
-        SampleRow { name: "Calendar", kind: "Widget", version: "0.30", status: "Unstable" },
-        SampleRow { name: "Sparkline", kind: "Widget", version: "0.30", status: "Stable" },
-        SampleRow { name: "Gauge", kind: "Widget", version: "0.30", status: "Stable" },
+        SampleRow {
+            name: "Paragraph",
+            kind: "Widget",
+            version: "0.30",
+            status: "Stable",
+        },
+        SampleRow {
+            name: "List",
+            kind: "Widget",
+            version: "0.30",
+            status: "Stable",
+        },
+        SampleRow {
+            name: "Table",
+            kind: "Widget",
+            version: "0.30",
+            status: "Stable",
+        },
+        SampleRow {
+            name: "BarChart",
+            kind: "Widget",
+            version: "0.30",
+            status: "Stable",
+        },
+        SampleRow {
+            name: "Canvas",
+            kind: "Widget",
+            version: "0.30",
+            status: "Unstable",
+        },
+        SampleRow {
+            name: "Calendar",
+            kind: "Widget",
+            version: "0.30",
+            status: "Unstable",
+        },
+        SampleRow {
+            name: "Sparkline",
+            kind: "Widget",
+            version: "0.30",
+            status: "Stable",
+        },
+        SampleRow {
+            name: "Gauge",
+            kind: "Widget",
+            version: "0.30",
+            status: "Stable",
+        },
     ]
 }
 
@@ -47,6 +84,36 @@ fn status_color(status: &str) -> ratatui::style::Color {
         _ => MOCHA.text_dim,
     }
 }
+
+const DESCRIPTION: &str = "Row-selectable data table with column constraints";
+
+const PROPS: &[PropInfo] = &[
+    PropInfo {
+        name: "header",
+        ty: "Row",
+        description: "Fixed header row with bottom margin",
+    },
+    PropInfo {
+        name: "widths",
+        ty: "&[Constraint]",
+        description: "Column width constraints",
+    },
+    PropInfo {
+        name: "block",
+        ty: "Block",
+        description: "Surrounding border and title",
+    },
+    PropInfo {
+        name: "row_highlight_style",
+        ty: "Style",
+        description: "Style applied to the selected row",
+    },
+    PropInfo {
+        name: "highlight_symbol",
+        ty: "&str",
+        description: "Prefix glyph for the selected row",
+    },
+];
 
 // ── Default (interactive) ──
 
@@ -65,10 +132,24 @@ impl TableDefault {
 }
 
 impl Ingredient for TableDefault {
-    fn group(&self) -> &str { "Table" }
-    fn name(&self) -> &str { "Default" }
-    fn source(&self) -> &str { "ratatui::widgets::Table" }
-    fn interactive(&self) -> bool { true }
+    fn group(&self) -> &str {
+        "Table"
+    }
+    fn name(&self) -> &str {
+        "Default"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Table"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn interactive(&self) -> bool {
+        true
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let header = Row::new(["Name", "Kind", "Version", "Status"])
@@ -121,12 +202,14 @@ impl Ingredient for TableDefault {
         match code {
             KeyCode::Up | KeyCode::Char('k') => {
                 let i = self.state.selected().unwrap_or(0);
-                self.state.select(Some(if i == 0 { len.saturating_sub(1) } else { i - 1 }));
+                self.state
+                    .select(Some(if i == 0 { len.saturating_sub(1) } else { i - 1 }));
                 true
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 let i = self.state.selected().unwrap_or(0);
-                self.state.select(Some(if i >= len - 1 { 0 } else { i + 1 }));
+                self.state
+                    .select(Some(if i >= len - 1 { 0 } else { i + 1 }));
                 true
             }
             _ => false,
@@ -139,9 +222,21 @@ impl Ingredient for TableDefault {
 struct TableEmpty;
 
 impl Ingredient for TableEmpty {
-    fn group(&self) -> &str { "Table" }
-    fn name(&self) -> &str { "Empty" }
-    fn source(&self) -> &str { "ratatui::widgets::Table" }
+    fn group(&self) -> &str {
+        "Table"
+    }
+    fn name(&self) -> &str {
+        "Empty"
+    }
+    fn source(&self) -> &str {
+        "ratatui::widgets::Table"
+    }
+    fn description(&self) -> &str {
+        DESCRIPTION
+    }
+    fn props(&self) -> &[PropInfo] {
+        PROPS
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
         let header = Row::new(["Name", "Kind", "Version", "Status"])

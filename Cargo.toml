@@ -1,6 +1,14 @@
 [workspace]
 members = ["crates/tui-pantry-macros", "examples/example-pantry"]
 
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+ratatui = "0.30"
+tui-pantry = { path = "." }
+
 [package]
 name = "tui-pantry"
 version = "0.1.0"

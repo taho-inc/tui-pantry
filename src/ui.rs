@@ -11,7 +11,6 @@ use crate::ingredient::PropInfo;
 
 use crate::app::{App, Focus, TAB_LABELS};
 use crate::nav::NavEntry;
-use crate::swatch::GradientSwatch;
 use crate::theme::PantryTheme;
 
 const SIDEBAR_WIDTH: u16 = 28;
@@ -27,9 +26,9 @@ fn tabs_total_width() -> u16 {
     labels + TAB_SEPARATOR_WIDTH * (TAB_LABELS.len() as u16 - 1) + 1
 }
 
-
 /// Hit-testable layout regions, computed once from terminal size.
 pub(crate) struct Regions {
+    pub terminal: Rect,
     pub top_bar: Rect,
     pub sidebar: Rect,
     pub preview: Rect,
@@ -38,19 +37,26 @@ pub(crate) struct Regions {
 
 impl Regions {
     pub fn from_terminal(area: Rect) -> Self {
-        let inner = area.inner(Margin { vertical: 1, horizontal: 2 });
         let [top_bar, main_area, bottom_bar] = Layout::vertical([
             Constraint::Length(TOP_BAR_HEIGHT),
             Constraint::Min(0),
             Constraint::Length(BOTTOM_BAR_HEIGHT),
         ])
-        .areas(inner);
-        let [sidebar, preview] = Layout::horizontal([
-            Constraint::Length(SIDEBAR_WIDTH),
-            Constraint::Min(0),
-        ])
-        .areas(main_area);
-        Self { top_bar, sidebar, preview, bottom_bar }
+        .areas(area);
+        let [sidebar, preview] =
+            Layout::horizontal([Constraint::Length(SIDEBAR_WIDTH), Constraint::Min(0)])
+                .areas(main_area);
+        Self {
+            terminal: area,
+            top_bar,
+            sidebar,
+            preview,
+            bottom_bar,
+        }
+    }
+
+    pub fn fullscreen_area(&self) -> Rect {
+        self.terminal
     }
 
     /// Which tab index (if any) is at the given terminal coordinate.
@@ -85,19 +91,17 @@ pub(crate) fn render(app: &App, area: Rect, buf: &mut Buffer, regions: &Regions)
     if app.focus == Focus::Fullscreen {
         if let Some(idx) = app.nav().selected_ingredient() {
             Clear.render(area, buf);
-            Block::new().style(Style::new().bg(theme.panel_bg)).render(area, buf);
+            Block::new()
+                .style(Style::new().bg(theme.panel_bg))
+                .render(area, buf);
             app.ingredients[idx].render(area, buf);
         }
         return;
     }
 
-    GradientSwatch::new(theme.gradient_left, theme.gradient_right).render(area, buf);
-
-    let inner = area.inner(Margin { vertical: 1, horizontal: 2 });
-    Clear.render(inner, buf);
     Block::new()
         .style(Style::new().bg(theme.panel_bg))
-        .render(inner, buf);
+        .render(area, buf);
 
     let focused = app.focus == Focus::Preview;
 
@@ -129,14 +133,22 @@ fn render_top_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) 
     }
     tab_spans.push(Span::raw(" "));
 
-    let [title_area, tabs_area] = Layout::horizontal([
-        Constraint::Min(0),
-        Constraint::Length(tabs_total_width()),
-    ])
-    .areas(area);
+    let [title_area, tabs_area] =
+        Layout::horizontal([Constraint::Min(0), Constraint::Length(tabs_total_width())])
+            .areas(area);
 
-    buf.set_line(title_area.x, title_area.y, &Line::from(vec![app_name]), title_area.width);
-    buf.set_line(tabs_area.x, tabs_area.y, &Line::from(tab_spans), tabs_area.width);
+    buf.set_line(
+        title_area.x,
+        title_area.y,
+        &Line::from(vec![app_name]),
+        title_area.width,
+    );
+    buf.set_line(
+        tabs_area.x,
+        tabs_area.y,
+        &Line::from(tab_spans),
+        tabs_area.width,
+    );
 }
 
 fn render_sidebar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
@@ -154,18 +166,21 @@ fn render_sidebar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffer) 
     let nav = app.nav();
     let tab_label = TAB_LABELS[app.active_tab].to_uppercase();
 
-    let header_line = Line::from(vec![
-        Span::styled(
-            format!(" {tab_label} "),
-            Style::default().fg(theme.text_dim).add_modifier(Modifier::BOLD),
-        ),
-    ]);
+    let header_line = Line::from(vec![Span::styled(
+        format!(" {tab_label} "),
+        Style::default()
+            .fg(theme.text_dim)
+            .add_modifier(Modifier::BOLD),
+    )]);
 
     buf.set_line(inner.x, inner.y, &header_line, inner.width);
 
     if nav.is_empty() {
         if inner.height > 2 {
-            let empty_msg = Line::from(Span::styled("  (empty)", Style::default().fg(theme.text_dim)));
+            let empty_msg = Line::from(Span::styled(
+                "  (empty)",
+                Style::default().fg(theme.text_dim),
+            ));
             buf.set_line(inner.x, inner.y + 2, &empty_msg, inner.width);
         }
         return;
@@ -245,14 +260,14 @@ fn render_preview(app: &App, theme: &PantryTheme, area: Rect, focused: bool, buf
         let props = ingredient.props();
         let doc_height = doc_panel_height(description, props);
 
-        let [header_area, body] = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Min(0),
-        ])
-        .areas(area);
+        let [header_area, body] =
+            Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(area);
 
         let breadcrumb = Line::from(vec![
-            Span::styled(format!(" {} ", ingredient.group()), Style::default().fg(theme.text_dim)),
+            Span::styled(
+                format!(" {} ", ingredient.group()),
+                Style::default().fg(theme.text_dim),
+            ),
             Span::styled("› ", Style::default().fg(theme.border)),
             Span::styled(ingredient.name(), Style::default().fg(theme.text)),
             Span::raw("  "),
@@ -265,11 +280,8 @@ fn render_preview(app: &App, theme: &PantryTheme, area: Rect, focused: bool, buf
             let max_doc = (body.height * 2 / 5).max(4);
             let clamped = doc_height.min(max_doc);
 
-            let [canvas, doc_area] = Layout::vertical([
-                Constraint::Min(3),
-                Constraint::Length(clamped),
-            ])
-            .areas(body);
+            let [canvas, doc_area] =
+                Layout::vertical([Constraint::Min(3), Constraint::Length(clamped)]).areas(body);
 
             let pane = Pane::new(ingredient.name(), ingredient.as_ref(), focused, theme);
             pane.render(canvas, buf);
@@ -295,7 +307,11 @@ fn doc_panel_height(description: &str, props: &[PropInfo]) -> u16 {
     }
     // 1 separator + 1 description (if present) + 1 blank + 1 header + N props
     let desc_lines: u16 = if description.is_empty() { 0 } else { 2 };
-    let props_lines: u16 = if props.is_empty() { 0 } else { 1 + props.len() as u16 };
+    let props_lines: u16 = if props.is_empty() {
+        0
+    } else {
+        1 + props.len() as u16
+    };
     1 + desc_lines + props_lines
 }
 
@@ -306,6 +322,10 @@ fn render_doc_panel(
     area: Rect,
     buf: &mut Buffer,
 ) {
+    if area.is_empty() {
+        return;
+    }
+
     let accent = Style::default().fg(Color::Rgb(232, 164, 90));
     let dim = Style::default().fg(theme.text_dim);
     let text = Style::default().fg(Color::Gray);
@@ -343,9 +363,15 @@ fn render_doc_panel(
                 break;
             }
             let line = Line::from(vec![
-                Span::styled(format!("{:<name_w$}", prop.name), Style::default().fg(theme.text)),
+                Span::styled(
+                    format!("{:<name_w$}", prop.name),
+                    Style::default().fg(theme.text),
+                ),
                 Span::styled("  ", dim),
-                Span::styled(format!("{:<ty_w$}", prop.ty), Style::default().fg(Color::Rgb(140, 140, 200))),
+                Span::styled(
+                    format!("{:<ty_w$}", prop.ty),
+                    Style::default().fg(Color::Rgb(140, 140, 200)),
+                ),
                 Span::styled("  ", dim),
                 Span::styled(prop.description, text),
             ]);
@@ -363,6 +389,10 @@ fn render_bottom_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffe
         Focus::Preview => vec![
             Span::styled(" ↑↓", accent),
             Span::styled(" navigate  ", dim),
+            Span::styled("␣", accent),
+            Span::styled(" select  ", dim),
+            Span::styled("click", accent),
+            Span::styled(" interact  ", dim),
             Span::styled("f", accent),
             Span::styled(" fullscreen  ", dim),
             Span::styled("Esc", accent),
@@ -384,8 +414,17 @@ fn render_bottom_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffe
                 spans.push(Span::styled(" fullscreen  ", dim));
             }
             spans.extend([
-                Span::styled("1-3", accent),
+                Span::styled("1-4", accent),
                 Span::styled(" tabs  ", dim),
+                Span::styled("t", accent),
+                Span::styled(
+                    if app.theme.dark {
+                        " light theme  "
+                    } else {
+                        " dark theme  "
+                    },
+                    dim,
+                ),
                 Span::styled("c", accent),
                 Span::styled(" colors  ", dim),
                 Span::styled("q", accent),
@@ -397,27 +436,70 @@ fn render_bottom_bar(app: &App, theme: &PantryTheme, area: Rect, buf: &mut Buffe
     };
 
     let depth_label = app.color_depth.label();
+    let theme_label = if app.theme.dark { "dark" } else { "light" };
     let indicator = vec![
         Span::styled("● ", accent),
+        Span::styled(theme_label, Style::default().fg(Color::White)),
+        Span::styled(" · ", dim),
         Span::styled(depth_label, Style::default().fg(Color::White)),
         Span::raw(" "),
     ];
     let indicator_width: u16 = indicator.iter().map(|s| s.width() as u16).sum();
 
-    let [hints_area, indicator_area] = Layout::horizontal([
-        Constraint::Min(0),
-        Constraint::Length(indicator_width),
-    ])
-    .areas(area);
+    let [hints_area, indicator_area] =
+        Layout::horizontal([Constraint::Min(0), Constraint::Length(indicator_width)]).areas(area);
 
-    buf.set_line(hints_area.x, hints_area.y, &Line::from(hints), hints_area.width);
-    buf.set_line(indicator_area.x, indicator_area.y, &Line::from(indicator), indicator_area.width);
+    buf.set_line(
+        hints_area.x,
+        hints_area.y,
+        &Line::from(hints),
+        hints_area.width,
+    );
+    buf.set_line(
+        indicator_area.x,
+        indicator_area.y,
+        &Line::from(indicator),
+        indicator_area.width,
+    );
 }
 
 fn fill_bg(buf: &mut Buffer, x: u16, y: u16, width: u16, color: Color) {
     for dx in 0..width {
         buf[(x + dx, y)].set_bg(color);
     }
+}
+
+/// Compute the area where the ingredient renders inside the preview pane.
+///
+/// Replicates the layout from `render_preview`: header (1 line) → body → optional doc panel,
+/// then the Pane border (1px each side).
+pub(crate) fn ingredient_area(
+    regions: &Regions,
+    ingredients: &[Box<dyn crate::Ingredient>],
+    nav: &crate::nav::NavTree,
+) -> Rect {
+    let Some(idx) = nav.selected_ingredient() else {
+        return Rect::default();
+    };
+    let ingredient = &ingredients[idx];
+    let doc_height = doc_panel_height(ingredient.description(), ingredient.props());
+
+    let [_header, body] =
+        Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(regions.preview);
+
+    let canvas = if doc_height > 0 {
+        let max_doc = (body.height * 2 / 5).max(4);
+        let clamped = doc_height.min(max_doc);
+        Layout::vertical([Constraint::Min(3), Constraint::Length(clamped)]).areas::<2>(body)[0]
+    } else {
+        body
+    };
+
+    // Pane adds a 1px border on all sides.
+    canvas.inner(Margin {
+        vertical: 1,
+        horizontal: 1,
+    })
 }
 
 fn render_stylesheet_prompt(theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
@@ -439,7 +521,10 @@ fn render_stylesheet_prompt(theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
         Line::from(Span::styled("     white = \"#FFFFFF\"", dim)),
         Line::default(),
         Line::from(Span::styled("     [typography]", dim)),
-        Line::from(Span::styled("     text = { color = \"#FFF\", description = \"Primary\" }", dim)),
+        Line::from(Span::styled(
+            "     text = { color = \"#FFF\", description = \"Primary\" }",
+            dim,
+        )),
     ];
 
     for (i, line) in lines.iter().enumerate() {

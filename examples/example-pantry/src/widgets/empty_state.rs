@@ -5,7 +5,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::Widget,
 };
-use tui_pantry::{Ingredient, PropInfo, layout::render_centered};
+use tui_pantry::{layout::render_centered, Ingredient, PropInfo};
 
 use crate::styles::MOCHA;
 

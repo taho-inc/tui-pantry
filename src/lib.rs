@@ -10,7 +10,7 @@ mod ui;
 
 use std::io;
 
-pub use ingredient::{Ingredient, PropInfo, is_click};
+pub use ingredient::{is_click, Ingredient, PropInfo};
 pub use pane::Pane;
 
 /// Re-export ratatui primitives that ingredient authors need.
@@ -29,7 +29,7 @@ pub use tui_pantry_macros::pantry_ingredients;
 /// ```
 ///
 /// **With ingredients** — caller supplies the ingredient list; styles
-/// are still discovered from `pantry.toml` / `styles.toml`:
+/// are still discovered from `pantry.toml`:
 ///
 /// ```ignore
 /// tui_pantry::run!(my_ingredients)
@@ -46,9 +46,9 @@ macro_rules! run {
 
 /// Boot the pantry harness with the given ingredients.
 ///
-/// Reads `<manifest_dir>/pantry.toml` at startup (falling back to
-/// `styles.toml`). If present, parses the stylesheet sections and
-/// prepends the resulting color/typography ingredients. Prefer the
+/// Reads `<manifest_dir>/pantry.toml` at startup. If present, parses
+/// the stylesheet sections and prepends the resulting color/typography
+/// ingredients. Prefer the
 /// [`run!`] macro which captures the manifest directory automatically.
 ///
 /// Takes ownership of the terminal for the duration. Restores
@@ -56,8 +56,7 @@ macro_rules! run {
 pub fn run(ingredients: Vec<Box<dyn Ingredient>>, manifest_dir: &str) -> io::Result<()> {
     let base = std::path::Path::new(manifest_dir);
 
-    let styles_content = std::fs::read_to_string(base.join("pantry.toml"))
-        .or_else(|_| std::fs::read_to_string(base.join("styles.toml")));
+    let styles_content = std::fs::read_to_string(base.join("pantry.toml"));
 
     let (mut all, chrome) = match styles_content {
         Ok(ref content) => {

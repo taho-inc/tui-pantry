@@ -6,7 +6,7 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{MOCHA, palette::accent};
+use crate::styles::{palette::accent, MOCHA};
 
 pub mod ingredient {
     use super::*;

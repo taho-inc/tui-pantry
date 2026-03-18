@@ -6,8 +6,8 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph, Widget},
 };
 
-use crate::Pane;
 use crate::ingredient::PropInfo;
+use crate::Pane;
 
 use crate::app::{App, Focus, TAB_LABELS};
 use crate::nav::NavEntry;
@@ -509,10 +509,8 @@ fn render_stylesheet_prompt(theme: &PantryTheme, area: Rect, buf: &mut Buffer) {
 
     let lines: &[Line] = &[
         Line::from(vec![
-            Span::styled("  Create ", text),
-            Span::styled("styles.toml", code),
-            Span::styled(" next to your ", text),
-            Span::styled("Cargo.toml", code),
+            Span::styled("  Add stylesheet sections to ", text),
+            Span::styled("pantry.toml", code),
             Span::styled(":", text),
         ]),
         Line::default(),

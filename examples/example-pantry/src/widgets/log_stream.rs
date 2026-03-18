@@ -19,6 +19,7 @@ pub mod ingredient {
 }
 
 #[derive(Clone, Copy)]
+
 enum Severity {
     Info,
     Warn,

@@ -7,7 +7,7 @@ use ratatui::{
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{MOCHA, palette::accent};
+use crate::styles::{palette::accent, MOCHA};
 
 pub mod ingredient {
     use super::*;
@@ -125,13 +125,11 @@ fn render_latency_chart(area: Rect, buf: &mut Buffer) {
 }
 
 fn render_error_scatter(area: Rect, buf: &mut Buffer) {
-    let datasets = vec![
-        Dataset::default()
-            .name("errors")
-            .graph_type(GraphType::Scatter)
-            .style(Style::default().fg(accent::RED))
-            .data(&ERROR_SCATTER),
-    ];
+    let datasets = vec![Dataset::default()
+        .name("errors")
+        .graph_type(GraphType::Scatter)
+        .style(Style::default().fg(accent::RED))
+        .data(&ERROR_SCATTER)];
 
     let x_labels =
         ["0m", "6m", "12m"].map(|s| Span::styled(s, Style::default().fg(MOCHA.text_dim)));

@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Rect},
     widgets::{RatatuiLogo, RatatuiLogoSize, RatatuiMascot},
 };
-use tui_pantry::{Ingredient, layout::render_centered};
+use tui_pantry::{layout::render_centered, Ingredient};
 
 pub mod ingredient {
     use super::*;

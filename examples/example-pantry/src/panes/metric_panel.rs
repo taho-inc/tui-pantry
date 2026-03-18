@@ -4,9 +4,9 @@ use ratatui::{
     style::Style,
     widgets::{Block, Gauge, Sparkline, Widget},
 };
-use tui_pantry::{Ingredient, layout::render_centered};
+use tui_pantry::{layout::render_centered, Ingredient};
 
-use crate::styles::{MOCHA, palette::accent};
+use crate::styles::{palette::accent, MOCHA};
 
 pub mod ingredient {
     use super::*;

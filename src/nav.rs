@@ -403,7 +403,7 @@ mod tests {
         nav.collapse();
 
         assert!(!nav.expanded[1]); // Chart collapsed
-        // Table(expanded) + 2 variants = 3; Chart at position 3
+                                   // Table(expanded) + 2 variants = 3; Chart at position 3
         assert_eq!(nav.cursor, 3);
     }
 

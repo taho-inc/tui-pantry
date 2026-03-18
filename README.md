@@ -3,35 +3,75 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
 [![CI](https://img.shields.io/github/actions/workflow/status/taho-inc/tui-pantry/ci.yml?label=CI)](https://github.com/taho-inc/tui-pantry/actions)
 
-Storybook-like harness for previewing [ratatui](https://ratatui.rs) widgets in isolation. Generic library with zero application dependencies.
+Tui-pantry is a component-driven development library for [ratatui](https://ratatui.rs). Build, preview, and iterate on terminal widgets in isolation, outside of your application, with zero application dependencies. If you've used [Storybook](https://storybook.js.org/), this should feel familiar.
 
-## Quick Start — Example Pantry
+Your widget crate declares *ingredients* (preview configurations), and tui-pantry renders them in an interactive terminal browser with live navigation, color depth emulation, and stylesheet support. Ingredients organize into four tabs:
+* **Widgets** for atomic components
+* **Panes** for composed sections like metric panels and data feeds
+* **Views** for full-page layouts
+* **Styles** for color palettes and typography
 
-Run the bundled example to see tui-pantry in action with ratatui's stock widgets themed in [Catppuccin Mocha](https://catppuccin.com/):
+ Your entire design surface is browsable in one place. Three steps to integrate: see [Getting Started](#getting-started).
+
+## Screenshots
+
+| Tab | Screenshot | Description |
+|-----|------------|-------------|
+| **Widgets** | ![Widgets tab](screenshots/widgets.png) | Atomic components in isolation: gauges, sparklines, bar charts, tables, each with prop documentation and source breadcrumbs. |
+| **Panes** | ![Panes tab](screenshots/panes.png) | Composed sections combining multiple widgets into cohesive panels. Resource gauges, activity feeds with bar charts and sparklines side by side. |
+| **Views** | ![Views tab](screenshots/views.png) | Full-page layouts assembling panes and widgets into complete screens. Monitoring dashboards with gauge rows, chart panels, and service tables. |
+| **Styles** | ![Styles tab](screenshots/styles.png) | Color palettes and typography driven from `pantry.toml`. Named swatches with hex values, grouped by family, plus text hierarchy samples. |
+
+## Example Pantry
+
+The repo includes a [reference pantry](examples/example-pantry/) showcasing ratatui's stock widgets themed in [Catppuccin Mocha](https://catppuccin.com/): Block, Paragraph, List, Table, Gauge, BarChart, Sparkline, Chart, Canvas, and more, plus opinionated widgets (Key Value, Status Badge, Log Stream, Empty State, Truncated Text), pane ingredients (Resource Gauges, Metric Panel, Activity Feed), and a complete color system with typography. Browse the source for the full integration pattern.
+
+## Quick Start
 
 ```bash
-cargo run -p example-pantry
+cargo install tui-pantry          # one-time: install the cargo subcommand
+cd my-widget-crate
+cargo pantry init                 # scaffold everything
+cargo pantry                      # open the pantry
 ```
 
-The example showcases Block, Paragraph, List, Table, Tabs, Gauge, LineGauge, BarChart, Sparkline, Scrollbar, Chart, Canvas, and Logo/Mascot widgets plus opinionated widgets (Key Value, Status Badge, Log Stream, Empty State, Truncated Text) and pane ingredients (Resource Gauges, Metric Panel, Activity Feed) with a complete color system and typography. Browse the [example source](examples/example-pantry/) for the full pattern.
+`cargo pantry init` does four things:
 
-## Installation
+1. Adds `tui-pantry` as an optional dependency (`cargo add tui-pantry --optional`)
+2. Creates `pantry.toml` with default config
+3. Scaffolds `examples/widget_preview/` with sample **Widgets**, **Panes**, and **Views** ingredients
+4. Prints next steps for wiring your own widgets into the pantry
 
-Add `tui-pantry` as an **optional** dependency in your widget crate:
+The scaffold compiles and runs immediately. Explore the sample ingredients, then replace them with your own.
+
+```bash
+cargo pantry                      # run from your widget crate root
+cargo pantry -p my-widget         # target a specific workspace package
+```
+
+<details>
+<summary><h2>Installation Details</h2></summary>
+
+`cargo pantry init` handles installation automatically. If you prefer manual setup, the steps below explain each piece.
+
+### Dependency
+
+```bash
+cargo add tui-pantry --optional
+```
+
+This creates a `tui-pantry` feature in your `Cargo.toml`. Gate ingredient modules behind `#[cfg(feature = "tui-pantry")]` to keep preview code out of production builds.
+
+Optionally, alias the feature to a shorter name:
 
 ```toml
 [features]
 pantry = ["dep:tui-pantry"]
-
-[dependencies]
-tui-pantry = { version = "0.1.0", optional = true }
 ```
 
-## Getting Started
+### `pantry.toml`
 
-### 1. Create `pantry.toml`
-
-Place a `pantry.toml` at your widget crate root. This declares the harness config, which modules contain ingredients, and (optionally) your color palette and typography:
+Place a `pantry.toml` at your widget crate root. This declares the harness config and (optionally) your color palette, typography, and ingredient modules:
 
 ```toml
 [config]
@@ -46,11 +86,37 @@ modules = [
 ]
 ```
 
-### 2. Write ingredient files
+The `[ingredients]` section is only needed when using the `pantry_ingredients!()` proc macro for automatic discovery (see [Registration](#registration)). For flat crates or manual aggregation, `[config]` alone is sufficient.
 
-Each module listed in `pantry.toml` must export `pub mod ingredient` with a `pub fn ingredients()` factory (see [Creating Ingredients](#creating-ingredients) below). Two patterns:
+### Ingredient files
 
-**Inline** — for dedicated pantry crates where the whole crate is the pantry. Ingredient structs live alongside the widget:
+Each ingredient module must export a `pub fn ingredients()` factory returning `Vec<Box<dyn Ingredient>>` (see [Creating Ingredients](#creating-ingredients) below).
+
+**Flat crate** - for single-widget crates where the widget lives in `lib.rs`. Add an `ingredient` module at the crate root, gated behind the feature flag:
+
+```rust
+// lib.rs
+#[cfg(feature = "tui-pantry")]
+pub mod ingredient;
+```
+
+```rust
+// src/ingredient.rs
+pub fn ingredients() -> Vec<Box<dyn tui_pantry::Ingredient>> {
+    vec![Box::new(ChartDefault), Box::new(ChartBraille)]
+}
+```
+
+**Colocated** - for crates with submodules. Separate `.ingredient.rs` files sit next to each widget module:
+
+```rust
+// widgets/gauge/mod.rs
+#[cfg(feature = "tui-pantry")]
+#[path = "gauge.ingredient.rs"]
+pub mod ingredient;
+```
+
+**Inline** - for dedicated pantry crates where the whole crate is the pantry. Ingredient structs live alongside the widget:
 
 ```rust
 // widgets/gauge.rs
@@ -61,18 +127,9 @@ pub mod ingredient {
 }
 ```
 
-**Colocated** — for production widget crates that shouldn't unconditionally depend on `tui-pantry`. Separate `.ingredient.rs` files gated behind a feature flag:
+### Example entry point
 
-```rust
-// widgets/gauge/mod.rs
-#[cfg(feature = "pantry")]
-#[path = "gauge.ingredient.rs"]
-pub mod ingredient;
-```
-
-### 3. Run
-
-Create `examples/widget_preview.rs` — a one-liner:
+Create `examples/widget_preview/main.rs` (or `examples/widget_preview.rs`, cargo recognizes both):
 
 ```rust
 fn main() -> std::io::Result<()> {
@@ -80,42 +137,28 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-Then run it:
+The no-argument `run!()` uses the `pantry_ingredients!()` proc macro to discover ingredients from `pantry.toml` at compile time. For flat crates without an `[ingredients]` section, pass the factory directly:
 
-```bash
-cargo run --example widget_preview --features pantry              # from your widget crate root
-cargo run --example widget_preview --features pantry -p my-widget  # target a specific workspace package
+```rust
+fn main() -> std::io::Result<()> {
+    tui_pantry::run!(my_crate::ingredient::ingredients())
+}
 ```
 
-The `run!()` macro reads `pantry.toml` at compile time via a proc macro to discover ingredients, and at runtime to parse stylesheet entries. It takes ownership of the terminal, renders a two-pane browser (sidebar + live preview), and restores terminal state on exit. `tui-pantry` re-exports `ratatui` so ingredient authors don't need a separate dependency.
+Both forms read `pantry.toml` at runtime for stylesheet entries (colors, typography, theme). `tui-pantry` re-exports `ratatui` so ingredient authors don't need a separate dependency.
 
-#### Optional: `cargo pantry` subcommand
-
-For a shorter command, install the cargo subcommand:
-
-```bash
-cargo install tui-pantry          # from crates.io (once published)
-cargo install --path tui-pantry   # from a local checkout
-```
-
-Then:
-
-```bash
-cargo pantry                    # from your widget crate root
-cargo pantry -p my-widget       # target a specific workspace package
-```
-
-This auto-creates `examples/widget_preview.rs` if missing and delegates to `cargo run --example widget_preview --features pantry`.
+</details>
 
 ## Concepts
 
-**Ingredients** are the unit of display — one "story" per widget configuration. They organize into:
+**Ingredients** are the unit of display, one "story" per widget configuration. They organize into:
 
-- **Tabs** — top-level categories: Widgets (default), Panes, Views, Styles
-- **Groups** — the widget name, shown as a collapsible tree parent
-- **Variants** — specific configurations under a group
+- **Tabs** - top-level categories: Widgets (default), Panes, Views, Styles
+- **Groups** - the widget name, shown as a collapsible tree parent
+- **Variants** - specific configurations under a group
 
-## Creating Ingredients
+<details>
+<summary><h2>Creating Ingredients</h2></summary>
 
 ### Basic ingredient
 
@@ -203,14 +246,17 @@ fn tab(&self) -> &str { "Views" }     // multi-widget compositions
 fn tab(&self) -> &str { "Styles" }    // palettes, typography, tokens
 ```
 
-## Trait Reference
+</details>
+
+<details>
+<summary><h2>Trait Reference</h2></summary>
 
 ### Required
 
 | Method | Purpose |
 |--------|---------|
-| `group()` | Widget name — collapsible heading in the sidebar. Shared `group` values nest together. |
-| `name()` | Variant label — leaf node under the group. |
+| `group()` | Widget name, collapsible heading in the sidebar. Shared `group` values nest together. |
+| `name()` | Variant label, leaf node under the group. |
 | `source()` | Module path shown as a breadcrumb in the preview pane. |
 | `render()` | Draw the widget into the preview area. |
 
@@ -237,7 +283,10 @@ pub struct PropInfo {
 
 Props describe the widget's API. All variants in a group should return the same props for consistent documentation.
 
-## Registration
+</details>
+
+<details>
+<summary><h2>Registration</h2></summary>
 
 ### Via `pantry.toml` (recommended)
 
@@ -280,22 +329,19 @@ fn main() -> std::io::Result<()> {
 
 Gate ingredient modules so they don't compile into production builds:
 
-```toml
-# widget library Cargo.toml
-[features]
-pantry = ["dep:tui-pantry"]
-```
-
 ```rust
 // widget's mod.rs
-#[cfg(feature = "pantry")]
+#[cfg(feature = "tui-pantry")]
 #[path = "gauge.ingredient.rs"]
 pub mod ingredient;
 ```
 
-## Chrome Theme
+</details>
 
-Set `theme` under `[config]` to switch the harness chrome between dark and light mode:
+<details>
+<summary><h2>Pantry Theme</h2></summary>
+
+Set `theme` under `[config]` to switch the pantry chrome between dark and light mode:
 
 ```toml
 [config]
@@ -304,9 +350,12 @@ theme = "light"   # "dark" (default) or "light"
 
 Dark mode uses Catppuccin Mocha colors. Light mode uses Catppuccin Latte colors. The accent color (purple) is shared. Toggle at runtime with `t`.
 
-## Stylesheet
+</details>
 
-The Styles tab can be driven entirely from `pantry.toml` — no manual ingredient code required. Add `style_source`, `[colors]`, and `[typography]` sections:
+<details>
+<summary><h2>Stylesheet</h2></summary>
+
+The Styles tab can be driven entirely from `pantry.toml`, no manual ingredient code required. Add `style_source`, `[colors]`, and `[typography]` sections:
 
 ```toml
 [config]
@@ -331,8 +380,6 @@ source = "my_crate"
 modules = ["widgets::gauge"]
 ```
 
-A standalone `styles.toml` is also supported as a fallback if `pantry.toml` is absent.
-
 ### Colors
 
 Each `[colors.<family>]` table becomes a sidebar group under the Styles tab. Named keys (snake_case) render as individual swatches with a colored block, display name, and hex value. Numeric keys render as a horizontal scale strip showing the gradient across values.
@@ -343,11 +390,10 @@ The optional `style_source` field under `[config]` sets the breadcrumb module pa
 
 Each key under `[typography]` renders sample text in its own color with the description alongside. Color values accept hex (`"#FFFFFF"`) or named ratatui colors (`"DarkGray"`).
 
-### Missing stylesheet
+</details>
 
-If `styles.toml` is absent, the Styles tab displays an inline prompt showing the expected TOML format. Programmatic `Ingredient` implementations with `tab() = "Styles"` still work alongside or instead of the TOML-driven approach.
-
-## Layout Helpers
+<details>
+<summary><h2>Layout Helpers</h2></summary>
 
 `tui_pantry::layout::render_centered` centers a widget on one or both axes:
 
@@ -364,7 +410,10 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 }
 ```
 
-## Variant Patterns
+</details>
+
+<details>
+<summary><h2>Variant Patterns</h2></summary>
 
 | Pattern | Use |
 |---------|-----|
@@ -373,6 +422,8 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | Data-driven | Same widget, different values (e.g., gauge at 0.3 / 0.7 / 0.9) |
 | Composition | Multiple widgets in one preview |
 | Empty state | How the widget handles no data |
+
+</details>
 
 ## Keys
 
@@ -384,8 +435,7 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | `f` | Enter fullscreen (when widget selected) | Enter fullscreen | Exit to sidebar |
 | `c` | Cycle color depth (24-bit → 256 → 16 → 8 → mono) | — | — |
 | `1-4` / `Tab` | Switch tabs | — | — |
-| `Esc` | Quit | Return to sidebar | Exit to sidebar |
-| `q` | Quit | — | — |
+| `Esc` / `q` | Quit | Return to sidebar (`Esc` only) | Return to sidebar (`Esc` only) |
 
 ## Mouse
 

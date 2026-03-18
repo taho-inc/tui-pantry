@@ -4,13 +4,13 @@ use ratatui::{
     style::Style,
     symbols::Marker,
     widgets::{
-        canvas::{Canvas as RatatuiCanvas, Circle, Line, Map, MapResolution, Rectangle},
         Block, Widget,
+        canvas::{Canvas as RatatuiCanvas, Circle, Line, Map, MapResolution, Rectangle},
     },
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;

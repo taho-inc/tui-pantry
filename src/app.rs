@@ -2,18 +2,18 @@ use std::io;
 use std::time::Duration;
 
 use ratatui::{
+    DefaultTerminal,
     crossterm::event::{
         self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
     },
     layout::Position,
-    DefaultTerminal,
 };
 
-use crate::color_depth::{quantize_buffer, ColorDepth};
+use crate::Ingredient;
+use crate::color_depth::{ColorDepth, quantize_buffer};
 use crate::nav::NavTree;
 use crate::theme::PantryTheme;
 use crate::ui;
-use crate::Ingredient;
 
 pub(crate) const TAB_LABELS: &[&str] = &["Widgets", "Panes", "Views", "Styles"];
 

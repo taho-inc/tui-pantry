@@ -4,7 +4,7 @@ use ratatui::{
     style::Style,
     widgets::{Block, Gauge, Widget},
 };
-use tui_pantry::{layout::render_centered, Ingredient};
+use tui_pantry::{Ingredient, layout::render_centered};
 
 use crate::styles::MOCHA;
 

@@ -10,7 +10,7 @@ mod ui;
 
 use std::io;
 
-pub use ingredient::{is_click, Ingredient, PropInfo};
+pub use ingredient::{Ingredient, PropInfo, is_click};
 pub use pane::Pane;
 
 /// Re-export ratatui primitives that ingredient authors need.

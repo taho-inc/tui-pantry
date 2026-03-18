@@ -6,13 +6,13 @@ use ratatui::{
     symbols::Marker,
     text::Line,
     widgets::{
-        canvas::{Canvas, Circle, Map, MapResolution},
         Block, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
+        canvas::{Canvas, Circle, Map, MapResolution},
     },
 };
 use tui_pantry::Ingredient;
 
-use crate::styles::{palette::accent, MOCHA};
+use crate::styles::{MOCHA, palette::accent};
 
 pub mod ingredient {
     use super::*;

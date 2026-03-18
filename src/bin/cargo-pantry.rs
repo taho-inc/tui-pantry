@@ -115,7 +115,13 @@ fn init() -> Result<ExitCode, String> {
 fn resolve_feature(package: &Option<String>, rest: &[String]) -> Result<String, String> {
     for feature in ["tui-pantry", "pantry"] {
         let mut cmd = Command::new("cargo");
-        cmd.args(["build", "--example", "widget_preview", "--features", feature]);
+        cmd.args([
+            "build",
+            "--example",
+            "widget_preview",
+            "--features",
+            feature,
+        ]);
         if let Some(pkg) = package {
             cmd.args(["-p", pkg]);
         }

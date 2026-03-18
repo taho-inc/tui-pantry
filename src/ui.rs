@@ -6,8 +6,8 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph, Widget},
 };
 
-use crate::ingredient::PropInfo;
 use crate::Pane;
+use crate::ingredient::PropInfo;
 
 use crate::app::{App, Focus, TAB_LABELS};
 use crate::nav::NavEntry;

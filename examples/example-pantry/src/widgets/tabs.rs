@@ -40,6 +40,10 @@ fn render_tabs(titles: &[&str], selected: usize, area: Rect, buf: &mut Buffer) {
 struct TabsDefault;
 
 impl Ingredient for TabsDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Tabs"
     }
@@ -60,6 +64,10 @@ impl Ingredient for TabsDefault {
 struct TabsMany;
 
 impl Ingredient for TabsMany {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Tabs"
     }
@@ -93,6 +101,10 @@ impl Ingredient for TabsMany {
 struct TabsSingle;
 
 impl Ingredient for TabsSingle {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Tabs"
     }

@@ -195,6 +195,10 @@ impl LogStreamDefault {
 }
 
 impl Ingredient for LogStreamDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "Log Stream"
     }
@@ -255,6 +259,10 @@ impl Ingredient for LogStreamDefault {
 struct LogStreamQuiet;
 
 impl Ingredient for LogStreamQuiet {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "Log Stream"
     }

@@ -315,7 +315,7 @@ dependencies = [
 
 [[package]]
 name = "example-pantry"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "ratatui",
  "tui-pantry",
@@ -1392,7 +1392,7 @@ checksum = "f17aaa1c6e3dc22b1da4b6bba97d066e354c7945cac2f7852d4e4e7ca7a6b56d"
 
 [[package]]
 name = "tui-pantry"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "ratatui",
  "toml",
@@ -1401,7 +1401,7 @@ dependencies = [
 
 [[package]]
 name = "tui-pantry-macros"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "proc-macro2",
  "quote",

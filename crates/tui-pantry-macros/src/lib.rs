@@ -11,7 +11,7 @@ use quote::quote;
 ///
 /// The `[ingredients]` table expects:
 /// - `source` — crate path prefix (e.g. `"taho_tui"`)
-/// - `modules` — array of module paths relative to source
+/// - `modules` — array of module paths
 ///
 /// Each module is expanded to `{source}::{module}::ingredient::ingredients()`.
 ///
@@ -47,26 +47,8 @@ pub fn pantry_ingredients(_input: TokenStream) -> TokenStream {
 
 /// Parse the `[ingredients]` table into extend statements.
 ///
-/// Supports two forms:
-///
-/// Grouped (recommended):
-/// ```toml
-/// [ingredients]
-/// source = "taho_tui"
-/// modules = ["widgets::node_table", "widgets::node_card"]
-/// ```
-/// Expands each to `{source}::{module}::ingredient::ingredients()`.
-///
-/// Array of tables (multi-source):
-/// ```toml
-/// [[ingredients]]
-/// source = "crate_a"
-/// modules = ["widgets::foo"]
-///
-/// [[ingredients]]
-/// source = "crate_b"
-/// modules = ["widgets::bar"]
-/// ```
+/// Expands each `{source}::{module}::ingredient::ingredients()`.
+/// Supports single `[ingredients]` or multi-source `[[ingredients]]`.
 fn parse_ingredients(table: &toml::Table) -> Vec<proc_macro2::TokenStream> {
     let Some(ingredients) = table.get("ingredients") else {
         return Vec::new();
@@ -105,7 +87,6 @@ fn parse_ingredient_group(table: &toml::Table) -> Vec<proc_macro2::TokenStream> 
             let module = m
                 .as_str()
                 .expect("tui-pantry: each module entry must be a string");
-
             let full_path = format!("{source}::{module}::ingredient");
             let path: proc_macro2::TokenStream = full_path
                 .parse()

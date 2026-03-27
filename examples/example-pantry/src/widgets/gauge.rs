@@ -81,6 +81,10 @@ fn render_gauge(label: &str, ratio: f64, area: Rect, buf: &mut Buffer) {
 struct GaugeLow;
 
 impl Ingredient for GaugeLow {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Gauge"
     }
@@ -107,6 +111,10 @@ impl Ingredient for GaugeLow {
 struct GaugeMedium;
 
 impl Ingredient for GaugeMedium {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Gauge"
     }
@@ -133,6 +141,10 @@ impl Ingredient for GaugeMedium {
 struct GaugeHigh;
 
 impl Ingredient for GaugeHigh {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Gauge"
     }
@@ -159,6 +171,10 @@ impl Ingredient for GaugeHigh {
 struct GaugeStacked;
 
 impl Ingredient for GaugeStacked {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Gauge"
     }

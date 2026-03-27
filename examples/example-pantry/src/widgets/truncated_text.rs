@@ -51,6 +51,10 @@ struct TruncatedSingleLine;
 const LONG_LINE: &str = "The Fabric is a self-forming peer-to-peer network that streams, compiles, and runs AI/ML workloads across distributed nodes with content-addressed storage";
 
 impl Ingredient for TruncatedSingleLine {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Truncated Text"
     }
@@ -88,6 +92,10 @@ const LINES: &[&str] = &[
 ];
 
 impl Ingredient for TruncatedMultiLine {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Truncated Text"
     }

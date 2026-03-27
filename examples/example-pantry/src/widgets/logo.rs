@@ -18,6 +18,10 @@ pub mod ingredient {
 struct LogoSmall;
 
 impl Ingredient for LogoSmall {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Logo & Mascot"
     }
@@ -44,6 +48,10 @@ impl Ingredient for LogoSmall {
 struct LogoTiny;
 
 impl Ingredient for LogoTiny {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Logo & Mascot"
     }
@@ -70,6 +78,10 @@ impl Ingredient for LogoTiny {
 struct Mascot;
 
 impl Ingredient for Mascot {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Logo & Mascot"
     }

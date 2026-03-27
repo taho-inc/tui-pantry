@@ -25,6 +25,10 @@ pub mod ingredient {
 struct CanvasShapes;
 
 impl Ingredient for CanvasShapes {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Canvas"
     }
@@ -85,6 +89,10 @@ impl Ingredient for CanvasShapes {
 struct CanvasMap;
 
 impl Ingredient for CanvasMap {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Canvas"
     }

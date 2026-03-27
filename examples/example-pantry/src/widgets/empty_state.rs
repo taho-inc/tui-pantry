@@ -116,6 +116,10 @@ const NO_DATA: EmptyContent = EmptyContent {
 };
 
 impl Ingredient for EmptyStateNoData {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Empty State"
     }
@@ -155,6 +159,10 @@ const LOADING: EmptyContent = EmptyContent {
 };
 
 impl Ingredient for EmptyStateLoading {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Empty State"
     }
@@ -194,6 +202,10 @@ const ERROR: EmptyContent = EmptyContent {
 };
 
 impl Ingredient for EmptyStateError {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Empty State"
     }

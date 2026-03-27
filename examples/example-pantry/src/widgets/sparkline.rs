@@ -47,6 +47,10 @@ fn render_sparkline(
 struct SparklineDefault;
 
 impl Ingredient for SparklineDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Sparkline"
     }
@@ -73,6 +77,10 @@ impl Ingredient for SparklineDefault {
 struct SparklineSparse;
 
 impl Ingredient for SparklineSparse {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Sparkline"
     }

@@ -51,6 +51,10 @@ impl ListDefault {
 }
 
 impl Ingredient for ListDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "List"
     }
@@ -118,6 +122,10 @@ impl Ingredient for ListDefault {
 struct ListEmpty;
 
 impl Ingredient for ListEmpty {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "List"
     }

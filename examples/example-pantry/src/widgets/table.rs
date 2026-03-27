@@ -132,6 +132,10 @@ impl TableDefault {
 }
 
 impl Ingredient for TableDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "Table"
     }
@@ -222,6 +226,10 @@ impl Ingredient for TableDefault {
 struct TableEmpty;
 
 impl Ingredient for TableEmpty {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "Table"
     }

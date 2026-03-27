@@ -6,13 +6,14 @@ use ratatui::{
     crossterm::event::{
         self, Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
     },
-    layout::Position,
+    layout::{Position, Rect},
+    style::Color,
 };
 
 use crate::Ingredient;
 use crate::color_depth::{ColorDepth, quantize_buffer};
 use crate::nav::NavTree;
-use crate::theme::PantryTheme;
+use crate::theme::{PantryTheme, PreviewBackgrounds, ThemePair};
 use crate::ui;
 
 pub(crate) const TAB_LABELS: &[&str] = &["Widgets", "Panes", "Views", "Styles"];
@@ -24,31 +25,83 @@ pub(crate) enum Focus {
     Fullscreen,
 }
 
+/// Active scrollbar thumb drag.
+struct ScrollbarDrag {
+    target: DragTarget,
+    area: Rect,
+    content_max: usize,
+}
+
+#[derive(Clone, Copy)]
+enum DragTarget {
+    Sidebar,
+    Gallery,
+}
+
 pub struct App {
     pub ingredients: Vec<Box<dyn Ingredient>>,
-    pub(crate) theme: PantryTheme,
+    pub(crate) themes: ThemePair,
+    pub(crate) dark_mode: bool,
+    pub(crate) preview_backgrounds: PreviewBackgrounds,
+    pub(crate) preview_bg_index: Option<usize>,
     pub(crate) active_tab: usize,
     pub(crate) navs: Vec<NavTree>,
     pub(crate) focus: Focus,
     pub(crate) color_depth: ColorDepth,
+    /// Gallery view scroll offset.
+    pub(crate) gallery_scroll: usize,
+    scrollbar_drag: Option<ScrollbarDrag>,
     running: bool,
 }
 
 impl App {
-    pub fn new(ingredients: Vec<Box<dyn Ingredient>>, theme: PantryTheme) -> Self {
+    pub fn new(
+        ingredients: Vec<Box<dyn Ingredient>>,
+        themes: ThemePair,
+        preview_backgrounds: PreviewBackgrounds,
+    ) -> Self {
         let navs: Vec<NavTree> = TAB_LABELS
             .iter()
             .map(|tab| NavTree::build(&ingredients, tab))
             .collect();
 
+        let dark_mode = themes.start_dark();
+
+        let preview_bg_index = if preview_backgrounds.is_empty() {
+            None
+        } else {
+            Some(0)
+        };
+
         Self {
             ingredients,
-            theme,
+            themes,
+            dark_mode,
+            preview_backgrounds,
+            preview_bg_index,
             active_tab: 0,
             navs,
             focus: Focus::Sidebar,
             color_depth: ColorDepth::default(),
+            gallery_scroll: 0,
+            scrollbar_drag: None,
             running: true,
+        }
+    }
+
+    pub(crate) fn theme(&self) -> &PantryTheme {
+        self.themes.get(self.dark_mode)
+    }
+
+    /// Current preview background, if configured.
+    pub(crate) fn preview_bg(&self) -> Option<(&str, Color)> {
+        self.preview_bg_index
+            .and_then(|i| self.preview_backgrounds.get(i))
+    }
+
+    fn cycle_preview_bg(&mut self) {
+        if let Some(idx) = &mut self.preview_bg_index {
+            *idx = (*idx + 1) % self.preview_backgrounds.len();
         }
     }
 
@@ -72,8 +125,6 @@ impl App {
 
                 let depth = self.color_depth;
                 terminal.draw(|frame| {
-                    // Recompute regions from the actual frame area to avoid
-                    // stale layout if the terminal resized after size() above.
                     let draw_regions = ui::Regions::from_terminal(frame.area());
                     ui::render(&self, frame.area(), frame.buffer_mut(), &draw_regions);
                     if depth != ColorDepth::TrueColor {
@@ -83,7 +134,6 @@ impl App {
                 dirty = false;
             }
 
-            // Animated ingredients tick at ~30 fps; static views wake once/sec.
             let timeout = if self.selected_is_animated() {
                 Duration::from_millis(33)
             } else {
@@ -105,7 +155,6 @@ impl App {
                     _ => {}
                 }
             } else {
-                // Animation tick expired — redraw.
                 dirty = true;
             }
         }
@@ -113,7 +162,6 @@ impl App {
         Ok(())
     }
 
-    /// True when the currently visible ingredient is animated.
     fn selected_is_animated(&self) -> bool {
         self.nav()
             .selected_ingredient()
@@ -131,10 +179,17 @@ impl App {
     fn handle_sidebar_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
         match code {
             KeyCode::Char('q') | KeyCode::Esc => self.running = false,
+            KeyCode::Char('b') => self.cycle_preview_bg(),
             KeyCode::Char('c') => self.color_depth = self.color_depth.cycle(),
-            KeyCode::Char('t') => self.theme = self.theme.toggle(),
-            KeyCode::Up | KeyCode::Char('k') => self.nav_mut().move_up(),
-            KeyCode::Down | KeyCode::Char('j') => self.nav_mut().move_down(),
+            KeyCode::Char('t') => self.dark_mode = !self.dark_mode,
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.nav_mut().move_up();
+                self.gallery_scroll = 0;
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.nav_mut().move_down();
+                self.gallery_scroll = 0;
+            }
             KeyCode::Right | KeyCode::Char('l') => self.nav_mut().expand(),
             KeyCode::Left | KeyCode::Char('h') => self.nav_mut().collapse(),
             KeyCode::Enter => self.enter_or_toggle(),
@@ -142,7 +197,6 @@ impl App {
                 self.focus = Focus::Fullscreen;
             }
 
-            // Tab switching
             KeyCode::Char('1') => self.active_tab = 0,
             KeyCode::Char('2') => self.active_tab = 1,
             KeyCode::Char('3') => self.active_tab = 2,
@@ -190,11 +244,31 @@ impl App {
         }
     }
 
-    /// Dispatch mouse events: sidebar clicks, tab clicks, scroll wheel, ingredient forwarding.
     fn handle_mouse(&mut self, mouse: MouseEvent, regions: &ui::Regions) {
         let pos = Position::new(mouse.column, mouse.row);
 
-        // Forward mouse events to interactive ingredients in preview/fullscreen.
+        // Scrollbar drag continuation — must come before other handlers.
+        if let MouseEventKind::Drag(MouseButton::Left) = mouse.kind
+            && let Some(drag) = &self.scrollbar_drag
+        {
+            let value = ui::scrollbar_position_from_row(drag.area, drag.content_max, mouse.row);
+
+            match drag.target {
+                DragTarget::Sidebar => {
+                    self.nav_mut().move_to(value);
+                }
+                DragTarget::Gallery => {
+                    self.gallery_scroll = value;
+                }
+            }
+
+            return;
+        }
+
+        if let MouseEventKind::Up(MouseButton::Left) = mouse.kind {
+            self.scrollbar_drag = None;
+        }
+
         match self.focus {
             Focus::Preview | Focus::Fullscreen => {
                 let ingredient_area = if self.focus == Focus::Fullscreen {
@@ -216,31 +290,133 @@ impl App {
 
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
+                // Check scrollbar clicks before general area clicks.
+                if self.handle_scrollbar_click(mouse, regions) {
+                    return;
+                }
+
                 if regions.sidebar.contains(pos) {
                     self.click_sidebar(mouse.row, regions);
                 } else if let Some(tab) = regions.tab_at(mouse.column, mouse.row) {
                     self.active_tab = tab;
                 }
             }
+
             MouseEventKind::ScrollUp if regions.sidebar.contains(pos) => {
                 self.nav_mut().move_up();
+                self.gallery_scroll = 0;
             }
             MouseEventKind::ScrollDown if regions.sidebar.contains(pos) => {
                 self.nav_mut().move_down();
+                self.gallery_scroll = 0;
             }
+            MouseEventKind::ScrollUp if regions.preview.contains(pos) => {
+                self.gallery_scroll = self.gallery_scroll.saturating_sub(3);
+            }
+            MouseEventKind::ScrollDown if regions.preview.contains(pos) => {
+                self.gallery_scroll += 3;
+            }
+
             _ => {}
         }
     }
 
-    /// Map a sidebar click row to a nav entry. Always returns focus to sidebar.
+    /// Handle a left-click on a scrollbar. Returns true if consumed.
+    fn handle_scrollbar_click(&mut self, mouse: MouseEvent, regions: &ui::Regions) -> bool {
+        let col = mouse.column;
+        let row = mouse.row;
+
+        // Sidebar scrollbar.
+        if let Some(area) = ui::sidebar_scrollbar_area(regions, self.nav())
+            && col == area.right() - 1
+            && row >= area.y
+            && row < area.bottom()
+        {
+            let entries = self.nav().visible().len();
+            let viewport = regions.sidebar.height.saturating_sub(1) as usize;
+            let page = viewport.max(1);
+
+            return self.dispatch_scrollbar_hit(
+                area,
+                entries.saturating_sub(1),
+                self.nav().cursor,
+                row,
+                page,
+                DragTarget::Sidebar,
+            );
+        }
+
+        // Gallery scrollbar.
+        if let Some((area, max_scroll)) = ui::gallery_scrollbar_info(regions, self.nav())
+            && col == area.right() - 1
+            && row >= area.y
+            && row < area.bottom()
+        {
+            let page = area.height.saturating_sub(2) as usize;
+
+            return self.dispatch_scrollbar_hit(
+                area,
+                max_scroll,
+                self.gallery_scroll,
+                row,
+                page,
+                DragTarget::Gallery,
+            );
+        }
+
+        false
+    }
+
+    /// Process a scrollbar hit (arrow, track, or thumb) and update state.
+    fn dispatch_scrollbar_hit(
+        &mut self,
+        area: Rect,
+        content_max: usize,
+        position: usize,
+        row: u16,
+        page: usize,
+        target: DragTarget,
+    ) -> bool {
+        let Some(hit) = ui::scrollbar_hit_test(area, content_max + 1, position, row) else {
+            return false;
+        };
+
+        let new_pos = match hit {
+            ui::ScrollbarHit::UpArrow => position.saturating_sub(1),
+            ui::ScrollbarHit::DownArrow => (position + 1).min(content_max),
+            ui::ScrollbarHit::Above => position.saturating_sub(page),
+            ui::ScrollbarHit::Below => (position + page).min(content_max),
+            ui::ScrollbarHit::Thumb => {
+                self.scrollbar_drag = Some(ScrollbarDrag {
+                    target,
+                    area,
+                    content_max,
+                });
+                return true;
+            }
+        };
+
+        match target {
+            DragTarget::Sidebar => {
+                self.nav_mut().move_to(new_pos);
+            }
+            DragTarget::Gallery => {
+                self.gallery_scroll = new_pos;
+            }
+        }
+
+        true
+    }
+
     fn click_sidebar(&mut self, row: u16, regions: &ui::Regions) {
         self.focus = Focus::Sidebar;
+        self.gallery_scroll = 0;
         let entry_row = row.saturating_sub(regions.sidebar.y + 1) as usize;
         let visible_index = entry_row + self.nav().scroll_offset;
         self.nav_mut().move_to(visible_index);
+        self.nav_mut().toggle_or_enter();
     }
 
-    /// Enter focuses interactive variants; toggles groups otherwise.
     fn enter_or_toggle(&mut self) {
         if let Some(idx) = self.nav().selected_ingredient()
             && self.ingredients[idx].interactive()

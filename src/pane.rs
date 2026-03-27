@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Style},
+    style::Style,
     widgets::{Block, Borders, Widget},
 };
 
@@ -37,7 +37,7 @@ impl Widget for Pane<'_> {
         let border_color = if self.focused {
             self.theme.accent
         } else {
-            Color::DarkGray
+            self.theme.border_dim
         };
 
         let block = Block::default()

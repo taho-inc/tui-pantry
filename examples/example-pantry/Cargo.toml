@@ -2,9 +2,19 @@
 name = "example-pantry"
 description = "Ratatui stock widget showcase for tui-pantry"
 publish = false
-edition.workspace = true
-version.workspace = true
+edition = { workspace = true }
+version = { workspace = true }
+
+[features]
+pantry = []
 
 [dependencies]
-ratatui.workspace = true
-tui-pantry.workspace = true
+ratatui = { workspace = true }
+tui-pantry = { workspace = true }
+
+[[example]]
+name = "widget_preview"
+required-features = ["pantry"]
+
+[lints]
+workspace = true

@@ -4,14 +4,21 @@ use std::path::Path;
 use std::process::{Command, ExitCode};
 
 const SCAFFOLD_MAIN: &str = include_str!("../../scaffold/main.rs");
-const SCAFFOLD_WIDGETS: &str = include_str!("../../scaffold/widgets.rs");
-const SCAFFOLD_PANES: &str = include_str!("../../scaffold/panes.rs");
-const SCAFFOLD_VIEWS: &str = include_str!("../../scaffold/views.rs");
 
 const PANTRY_TOML: &str = "\
 [config]
 theme = \"dark\"
+
+[ingredients]
+source = \"my_crate\"  # replace with your crate name
+modules = []
+# Add module paths as you create .ingredient.rs files:
+# modules = [\"widgets::button\", \"panes::header\"]
 ";
+
+fn cargo_alias(feature: &str) -> String {
+    format!("\n[alias]\npantry = \"run --example widget_preview --features {feature}\"\n")
+}
 
 fn main() -> ExitCode {
     match run() {
@@ -27,25 +34,15 @@ fn run() -> Result<ExitCode, String> {
     let args: Vec<String> = env::args().collect();
     let forward = skip_subcommand_token(&args);
 
-    if forward.first().map(|s| s.as_str()) == Some("init") {
-        return init();
+    match forward.first().map(|s| s.as_str()) {
+        Some("init") => return init(),
+        Some("dump") => return headless(forward, &["--dump"]),
+        Some("list") => return headless(forward, &["--list"]),
+        _ => {}
     }
 
     let (package, rest) = extract_package(forward);
-
-    // When no -p flag, we can validate locally and scaffold the example.
-    // With -p, let cargo handle resolution — it knows the workspace.
-    if package.is_none() {
-        let cwd = env::current_dir().map_err(|e| format!("cannot read working directory: {e}"))?;
-
-        if !cwd.join("pantry.toml").exists() {
-            return Err(format!(
-                "no pantry.toml in {}\n\
-                 Run `cargo pantry init` to scaffold, or create one manually.",
-                cwd.display()
-            ));
-        }
-    }
+    require_pantry_toml(&package)?;
 
     // Probe for the right feature name with `cargo build` (captured output),
     // then launch with `cargo run` (inherited stdio so the TUI owns the terminal).
@@ -76,7 +73,6 @@ fn init() -> Result<ExitCode, String> {
         return Err("no Cargo.toml in current directory".into());
     }
 
-    // Add tui-pantry as optional dependency via cargo add.
     let status = Command::new("cargo")
         .args(["add", "tui-pantry", "--optional"])
         .status()
@@ -86,27 +82,40 @@ fn init() -> Result<ExitCode, String> {
         return Err("cargo add tui-pantry --optional failed".into());
     }
 
+    let feature = detect_feature_name(&cwd)?;
+
     ensure_file(&cwd.join("pantry.toml"), PANTRY_TOML)?;
+    ensure_file(&cwd.join("examples/widget_preview/main.rs"), SCAFFOLD_MAIN)?;
+    ensure_cargo_alias(&cwd, &feature)?;
 
-    let example_dir = cwd.join("examples/widget_preview");
-    ensure_file(&example_dir.join("main.rs"), SCAFFOLD_MAIN)?;
-    ensure_file(&example_dir.join("widgets.rs"), SCAFFOLD_WIDGETS)?;
-    ensure_file(&example_dir.join("panes.rs"), SCAFFOLD_PANES)?;
-    ensure_file(&example_dir.join("views.rs"), SCAFFOLD_VIEWS)?;
-
-    eprintln!("\ncargo-pantry: initialized. Run `cargo pantry` to see the sample ingredients.");
+    eprintln!("\ncargo-pantry: initialized.");
     eprintln!();
-    eprintln!("Scaffolded examples/widget_preview/ with Widgets, Panes, and Views tabs.");
-    eprintln!("Edit these files to replace samples with your own widgets, or delete");
-    eprintln!("the directory and start fresh.");
+    eprintln!("Next steps:");
+    eprintln!("  1. Create .ingredient.rs files in src/ with #[cfg(feature = \"{feature}\")]");
+    eprintln!("  2. Add module paths to pantry.toml under [ingredients] modules");
+    eprintln!("  3. Run `cargo pantry` to preview");
     eprintln!();
-    eprintln!("To move ingredients into your crate for reuse:");
-    eprintln!("  1. Create src/ingredient.rs with your widget previews");
-    eprintln!("  2. Gate it: #[cfg(feature = \"tui-pantry\")] pub mod ingredient;");
-    eprintln!("  3. Update examples/widget_preview/main.rs:");
-    eprintln!("       tui_pantry::run!(my_crate::ingredient::ingredients())");
+    eprintln!("See https://docs.taho.is/tui-pantry/getting-started for the full guide.");
 
     Ok(ExitCode::SUCCESS)
+}
+
+/// When no `-p` flag, validate that pantry.toml exists locally.
+/// With `-p`, let cargo handle resolution — it knows the workspace.
+fn require_pantry_toml(package: &Option<String>) -> Result<(), String> {
+    if package.is_none() {
+        let cwd = env::current_dir().map_err(|e| format!("cannot read working directory: {e}"))?;
+
+        if !cwd.join("pantry.toml").exists() {
+            return Err(format!(
+                "no pantry.toml in {}\n\
+                 Run `cargo pantry init` to scaffold, or create one manually.",
+                cwd.display()
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 /// Probe `cargo build` to find which feature name the crate uses.
@@ -137,7 +146,8 @@ fn resolve_feature(package: &Option<String>, rest: &[String]) -> Result<String, 
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         let not_found = stderr.contains(&format!("feature `{feature}` is not a feature"))
-            || stderr.contains(&format!("does not have feature `{feature}`"));
+            || stderr.contains(&format!("does not have feature `{feature}`"))
+            || stderr.contains(&format!("does not contain this feature: {feature}"));
         if !not_found {
             // Real build error — surface it.
             std::io::Write::write_all(&mut std::io::stderr(), &output.stderr).ok();
@@ -177,6 +187,85 @@ fn skip_subcommand_token(args: &[String]) -> &[String] {
     } else {
         &args[1..]
     }
+}
+
+/// Run the example binary in headless mode, forwarding args after `--`.
+///
+/// `prefix` is the flag(s) injected before the forwarded arguments
+/// (e.g. `["--dump"]` or `["--list"]`).
+fn headless(forward: &[String], prefix: &[&str]) -> Result<ExitCode, String> {
+    let after_sub = &forward[1..];
+    let (package, rest) = extract_package(after_sub);
+    require_pantry_toml(&package)?;
+
+    let feature = resolve_feature(&package, &[])?;
+
+    let mut cmd = Command::new("cargo");
+    cmd.args(["run", "--example", "widget_preview", "--features", &feature]);
+
+    if let Some(ref pkg) = package {
+        cmd.args(["-p", pkg]);
+    }
+
+    cmd.arg("--");
+    cmd.args(prefix);
+    cmd.args(&rest);
+
+    let status = cmd
+        .status()
+        .map_err(|e| format!("failed to run cargo: {e}"))?;
+
+    Ok(if status.success() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(status.code().unwrap_or(1) as u8)
+    })
+}
+
+/// Detect whether the crate uses `pantry` or `tui-pantry` as the feature name.
+///
+/// Prefers an explicit `pantry` feature (the conventional rename) over the
+/// implicit `tui-pantry` feature created by `cargo add --optional`.
+fn detect_feature_name(cwd: &Path) -> Result<String, String> {
+    let cargo_toml = fs::read_to_string(cwd.join("Cargo.toml"))
+        .map_err(|e| format!("cannot read Cargo.toml: {e}"))?;
+
+    let manifest: toml::Table =
+        toml::from_str(&cargo_toml).map_err(|e| format!("cannot parse Cargo.toml: {e}"))?;
+
+    let has_pantry = manifest
+        .get("features")
+        .and_then(|f| f.as_table())
+        .is_some_and(|features| features.contains_key("pantry"));
+
+    Ok(if has_pantry { "pantry" } else { "tui-pantry" }.into())
+}
+
+/// Create or append the `pantry` alias to `.cargo/config.toml`.
+///
+/// Skips if the alias already exists. Appends rather than overwrites
+/// because `.cargo/config.toml` may contain other user configuration.
+fn ensure_cargo_alias(cwd: &Path, feature: &str) -> Result<(), String> {
+    let alias = cargo_alias(feature);
+    let config_path = cwd.join(".cargo/config.toml");
+
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| format!("cannot read {}: {e}", config_path.display()))?;
+
+        if content.contains("pantry") {
+            return Ok(());
+        }
+
+        fs::write(&config_path, format!("{content}{alias}"))
+            .map_err(|e| format!("cannot write {}: {e}", config_path.display()))?;
+
+        eprintln!("cargo-pantry: appended alias to {}", config_path.display());
+    } else {
+        ensure_file(&config_path, alias.trim_start())?;
+    }
+
+    Ok(())
 }
 
 fn ensure_file(path: &Path, content: &str) -> Result<(), String> {

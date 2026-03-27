@@ -5,13 +5,15 @@
 
 Tui-pantry is a component-driven development library for [ratatui](https://ratatui.rs). Build, preview, and iterate on terminal widgets in isolation, outside of your application, with zero application dependencies. If you've used [Storybook](https://storybook.js.org/), this should feel familiar.
 
-Your widget crate declares *ingredients* (preview configurations), and tui-pantry renders them in an interactive terminal browser with live navigation, color depth emulation, and stylesheet support. Ingredients organize into four tabs:
+**[Full documentation →](https://docs.taho.is/tui-pantry)**
+
+Your widget crate declares *ingredients* (preview configurations), and tui-pantry renders them in an [interactive terminal browser](https://docs.taho.is/tui-pantry/the-pantry) with live navigation, color depth emulation, and stylesheet support. Ingredients organize into four tabs:
 * **Widgets** for atomic components
 * **Panes** for composed sections like metric panels and data feeds
 * **Views** for full-page layouts
 * **Styles** for color palettes and typography
 
- Your entire design surface is browsable in one place. Three steps to integrate: see [Getting Started](#getting-started).
+Your entire design surface is browsable in one place. Three steps to integrate: see [Quick Start](#quick-start) or the [installation guide](https://docs.taho.is/tui-pantry/installation).
 
 ## Screenshots
 
@@ -24,7 +26,7 @@ Your widget crate declares *ingredients* (preview configurations), and tui-pantr
 
 ## Example Pantry
 
-The repo includes a [reference pantry](examples/example-pantry/) showcasing ratatui's stock widgets themed in [Catppuccin Mocha](https://catppuccin.com/): Block, Paragraph, List, Table, Gauge, BarChart, Sparkline, Chart, Canvas, and more, plus opinionated widgets (Key Value, Status Badge, Log Stream, Empty State, Truncated Text), pane ingredients (Resource Gauges, Metric Panel, Activity Feed), and a complete color system with typography. Browse the source for the full integration pattern.
+The repo includes a [reference pantry](examples/example-pantry/) showcasing ratatui's stock widgets themed in [Catppuccin Mocha](https://catppuccin.com/): Block, Paragraph, List, Table, Gauge, BarChart, Sparkline, Chart, Canvas, and more, plus opinionated widgets (Key Value, Status Badge, Log Stream, Empty State, Truncated Text), pane ingredients (Resource Gauges, Metric Panel, Activity Feed), and a complete color system with typography. Run it with `cargo pantry -p example-pantry`. Browse the source for the full integration pattern.
 
 ## Quick Start
 
@@ -35,14 +37,11 @@ cargo pantry init                 # scaffold everything
 cargo pantry                      # open the pantry
 ```
 
-`cargo pantry init` does four things:
+`cargo pantry init` does three things:
 
 1. Adds `tui-pantry` as an optional dependency (`cargo add tui-pantry --optional`)
-2. Creates `pantry.toml` with default config
-3. Scaffolds `examples/widget_preview/` with sample **Widgets**, **Panes**, and **Views** ingredients
-4. Prints next steps for wiring your own widgets into the pantry
-
-The scaffold compiles and runs immediately. Explore the sample ingredients, then replace them with your own.
+2. Creates `pantry.toml` with `[ingredients]` section and `examples/widget_preview/main.rs`
+3. Adds a `pantry` alias to `.cargo/config.toml` so anyone who clones your repo can run `cargo pantry` without installing the global binary
 
 ```bash
 cargo pantry                      # run from your widget crate root
@@ -52,7 +51,7 @@ cargo pantry -p my-widget         # target a specific workspace package
 <details>
 <summary><h2>Installation Details</h2></summary>
 
-`cargo pantry init` handles installation automatically. If you prefer manual setup, the steps below explain each piece.
+`cargo pantry init` handles installation automatically. If you prefer manual setup, the steps below explain each piece. See the [installation guide](https://docs.taho.is/tui-pantry/installation) for the full walkthrough.
 
 ### Dependency
 
@@ -60,14 +59,14 @@ cargo pantry -p my-widget         # target a specific workspace package
 cargo add tui-pantry --optional
 ```
 
-This creates a `tui-pantry` feature in your `Cargo.toml`. Gate ingredient modules behind `#[cfg(feature = "tui-pantry")]` to keep preview code out of production builds.
-
-Optionally, alias the feature to a shorter name:
+This creates a `tui-pantry` feature in your `Cargo.toml`. Many crates rename it to `pantry` for brevity:
 
 ```toml
 [features]
 pantry = ["dep:tui-pantry"]
 ```
+
+Gate ingredient modules behind whichever feature name you chose to keep preview code out of production builds.
 
 ### `pantry.toml`
 
@@ -159,6 +158,8 @@ Both forms read `pantry.toml` at runtime for stylesheet entries (colors, typogra
 
 <details>
 <summary><h2>Creating Ingredients</h2></summary>
+
+See the [writing ingredients guide](https://docs.taho.is/tui-pantry/writing-ingredients) for the full reference.
 
 ### Basic ingredient
 
@@ -288,6 +289,8 @@ Props describe the widget's API. All variants in a group should return the same 
 <details>
 <summary><h2>Registration</h2></summary>
 
+See the [registration reference](https://docs.taho.is/tui-pantry/writing-ingredients#registration) for multi-crate aggregation and advanced patterns.
+
 ### Via `pantry.toml` (recommended)
 
 The `[ingredients]` table in `pantry.toml` maps module paths to their `ingredient::ingredients()` factories. The `pantry_ingredients!()` proc macro reads this at compile time:
@@ -331,7 +334,7 @@ Gate ingredient modules so they don't compile into production builds:
 
 ```rust
 // widget's mod.rs
-#[cfg(feature = "tui-pantry")]
+#[cfg(feature = "pantry")]
 #[path = "gauge.ingredient.rs"]
 pub mod ingredient;
 ```
@@ -341,21 +344,48 @@ pub mod ingredient;
 <details>
 <summary><h2>Pantry Theme</h2></summary>
 
-Set `theme` under `[config]` to switch the pantry chrome between dark and light mode:
+See the [configuration reference](https://docs.taho.is/tui-pantry/configuration) for all available fields.
+
+Set `theme` under `[config]` to switch the pantry chrome between dark and light mode. Toggle at runtime with `t`.
 
 ```toml
 [config]
 theme = "light"   # "dark" (default) or "light"
 ```
 
-Dark mode uses Catppuccin Mocha colors. Light mode uses Catppuccin Latte colors. The accent color (purple) is shared. Toggle at runtime with `t`.
+The built-in palettes are derived from Catppuccin Mocha (dark) and Latte (light). Override any chrome color per mode via `[pantry.dark]` and `[pantry.light]`:
+
+```toml
+[pantry.dark]
+accent = "#f5c2e7"
+text = "#b4befe"
+border = "#74c7ec"
+
+[pantry.light]
+accent = "#8839EF"
+text = "#4c4f69"
+```
+
+All fields are optional — missing keys keep the built-in defaults. Available fields: `accent`, `panel_bg`, `cursor_bg`, `border`, `border_dim`, `text`, `text_dim`, `doc_accent`, `doc_text`, `doc_type`, `indicator`.
+
+### Preview backgrounds
+
+Your widgets may render on a different background than the pantry chrome. Define named backgrounds and cycle through them with `b`:
+
+```toml
+[pantry.preview_backgrounds]
+dark = "#0D0623"
+light = "#F4F3F8"
+```
+
+The active background name appears in the breadcrumb. This is independent of the pantry's own dark/light toggle — you can run the pantry in light mode while previewing on a dark app surface.
 
 </details>
 
 <details>
 <summary><h2>Stylesheet</h2></summary>
 
-The Styles tab can be driven entirely from `pantry.toml`, no manual ingredient code required. Add `style_source`, `[colors]`, and `[typography]` sections:
+The Styles tab can be driven entirely from `pantry.toml` — no ingredient code required. See the [configuration reference](https://docs.taho.is/tui-pantry/configuration#colors) for full details.
 
 ```toml
 [config]
@@ -425,7 +455,35 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 
 </details>
 
+## Headless Dump
+
+`cargo pantry dump` renders ingredients to raw ANSI escape sequences on stdout without opening the TUI. Useful for CI pipelines, automated testing, and AI agent workflows. See the [cargo pantry reference](https://docs.taho.is/tui-pantry/reference/cargo-pantry) for the full CLI.
+
+```bash
+cargo pantry list                                       # print all group/variant pairs
+cargo pantry dump "Button"                              # render all Button variants (80x24)
+cargo pantry dump "Button" --variant "Focused"          # render one variant
+cargo pantry dump "Button" --size 30x5                  # custom width x height
+cargo pantry dump "Table" -p my-widget                  # target a workspace package
+```
+
+`list` prints one `group/variant` pair per line:
+
+```
+Button/Default
+Button/Focused
+Button/Disabled
+Table/Default
+Table/Empty
+```
+
+`dump` writes ANSI output that can be piped to `cat` for visual inspection or read directly by tools that parse escape sequences. When a group has multiple variants and no `--variant` filter, each variant is separated by a `--- Name ---` header.
+
+The default render size is 80 columns by 24 rows. Use `--size WxH` to override.
+
 ## Keys
+
+See the full [keyboard & mouse reference](https://docs.taho.is/tui-pantry/reference/keyboard-shortcuts).
 
 | Key | Sidebar | Preview | Fullscreen |
 |-----|---------|---------|------------|
@@ -433,6 +491,8 @@ fn render(&self, area: Rect, buf: &mut Buffer) {
 | `h/l` `←/→` | Collapse/expand | — | — |
 | `Enter` | Toggle group or focus preview | — | — |
 | `f` | Enter fullscreen (when widget selected) | Enter fullscreen | Exit to sidebar |
+| `t` | Toggle dark/light theme | — | — |
+| `b` | Cycle preview background | — | — |
 | `c` | Cycle color depth (24-bit → 256 → 16 → 8 → mono) | — | — |
 | `1-4` / `Tab` | Switch tabs | — | — |
 | `Esc` / `q` | Quit | Return to sidebar (`Esc` only) | Return to sidebar (`Esc` only) |

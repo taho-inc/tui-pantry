@@ -55,6 +55,10 @@ impl ScrollbarVertical {
 }
 
 impl Ingredient for ScrollbarVertical {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Scrollbar"
     }
@@ -122,6 +126,10 @@ impl ScrollbarHorizontal {
 }
 
 impl Ingredient for ScrollbarHorizontal {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Scrollbar"
     }

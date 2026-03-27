@@ -2,6 +2,12 @@
 theme = "dark"
 style_source = "example_pantry::styles::palette"
 
+[pantry.preview_backgrounds]
+crust = "#11111b"
+base = "#1e1e2e"
+surface = "#313244"
+latte = "#eff1f5"
+
 [colors.accent]
 rosewater = "#f5e0dc"
 flamingo = "#f2cdcd"

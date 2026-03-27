@@ -2,8 +2,11 @@
 members = ["crates/tui-pantry-macros", "examples/example-pantry"]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
+
+[workspace.lints.clippy]
+module_inception = "allow"
 
 [workspace.dependencies]
 ratatui = "0.30"
@@ -11,7 +14,7 @@ tui-pantry = { path = "." }
 
 [package]
 name = "tui-pantry"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 description = "Preview harness for developing Ratatui widgets in isolation"
 license = "MIT OR Apache-2.0"
@@ -27,4 +30,7 @@ path = "src/bin/cargo-pantry.rs"
 [dependencies]
 ratatui = "0.30"
 toml = { version = "0.9", features = ["display", "preserve_order"] }
-tui-pantry-macros = { version = "0.2.1", path = "crates/tui-pantry-macros" }
+tui-pantry-macros = { version = "0.3.0", path = "crates/tui-pantry-macros" }
+
+[lints]
+workspace = true

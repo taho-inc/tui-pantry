@@ -1,6 +1,6 @@
 [package]
 name = "tui-pantry-macros"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 description = "Proc macros for tui-pantry — not intended for direct use"
 license = "MIT OR Apache-2.0"
@@ -14,3 +14,6 @@ proc-macro = true
 proc-macro2 = "1"
 quote = "1"
 toml = "0.9"
+
+[lints]
+workspace = true

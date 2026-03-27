@@ -32,6 +32,10 @@ The library emphasizes composability and simplicity.";
 struct ParagraphWrapped;
 
 impl Ingredient for ParagraphWrapped {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Paragraph"
     }
@@ -61,6 +65,10 @@ impl Ingredient for ParagraphWrapped {
 struct ParagraphAligned;
 
 impl Ingredient for ParagraphAligned {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Paragraph"
     }
@@ -91,6 +99,10 @@ impl Ingredient for ParagraphAligned {
 struct ParagraphStyled;
 
 impl Ingredient for ParagraphStyled {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Paragraph"
     }

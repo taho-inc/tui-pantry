@@ -244,7 +244,7 @@ fn parse_themed_section(
 // Color parsing
 // ---------------------------------------------------------------------------
 
-fn parse_color(s: &str) -> Color {
+pub(crate) fn parse_color(s: &str) -> Color {
     if let Some(hex) = s.strip_prefix('#') {
         let bytes = u32::from_str_radix(hex, 16).expect("should be valid hex color");
         Color::Rgb((bytes >> 16) as u8, (bytes >> 8) as u8, bytes as u8)

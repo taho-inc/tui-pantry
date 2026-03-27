@@ -86,6 +86,10 @@ const SAMPLE_ENTRIES: &[Entry] = &[
 ];
 
 impl Ingredient for KeyValueDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "Key Value"
     }
@@ -112,6 +116,10 @@ impl Ingredient for KeyValueDefault {
 struct KeyValueDense;
 
 impl Ingredient for KeyValueDense {
+    fn section(&self) -> Option<&str> {
+        Some("Data")
+    }
+
     fn group(&self) -> &str {
         "Key Value"
     }

@@ -61,6 +61,10 @@ const STATUSES: &[Status] = &[
 struct StatusBadgeInline;
 
 impl Ingredient for StatusBadgeInline {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Status Badge"
     }
@@ -95,6 +99,10 @@ impl Ingredient for StatusBadgeInline {
 struct StatusBadgePill;
 
 impl Ingredient for StatusBadgePill {
+    fn section(&self) -> Option<&str> {
+        Some("Chrome")
+    }
+
     fn group(&self) -> &str {
         "Status Badge"
     }

@@ -19,6 +19,12 @@ pub trait Ingredient: Send + Sync {
         "Widgets"
     }
 
+    /// Optional section grouping above the widget level (e.g., "Core", "Charts").
+    /// When declared, the sidebar shows Section → Widget → Variant hierarchy.
+    fn section(&self) -> Option<&str> {
+        None
+    }
+
     /// Widget group name displayed as a tree parent (e.g., "Node Table").
     fn group(&self) -> &str;
 

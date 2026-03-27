@@ -21,6 +21,10 @@ pub mod ingredient {
 struct BarChartDefault;
 
 impl Ingredient for BarChartDefault {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Bar Chart"
     }
@@ -63,6 +67,10 @@ impl Ingredient for BarChartDefault {
 struct BarChartHighLoad;
 
 impl Ingredient for BarChartHighLoad {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Bar Chart"
     }

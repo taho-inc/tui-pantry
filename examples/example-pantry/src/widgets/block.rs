@@ -74,6 +74,10 @@ fn border_style() -> Style {
 struct BlockPlain;
 
 impl Ingredient for BlockPlain {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Block"
     }
@@ -104,6 +108,10 @@ impl Ingredient for BlockPlain {
 struct BlockRounded;
 
 impl Ingredient for BlockRounded {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Block"
     }
@@ -133,6 +141,10 @@ impl Ingredient for BlockRounded {
 struct BlockDouble;
 
 impl Ingredient for BlockDouble {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Block"
     }
@@ -164,6 +176,10 @@ impl Ingredient for BlockDouble {
 struct BlockTitled;
 
 impl Ingredient for BlockTitled {
+    fn section(&self) -> Option<&str> {
+        Some("Layout")
+    }
+
     fn group(&self) -> &str {
         "Block"
     }

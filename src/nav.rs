@@ -1,26 +1,54 @@
 use crate::Ingredient;
 
+/// Internal section data built during `NavTree::build`.
+#[derive(Debug)]
+struct SectionData {
+    name: String,
+    widget_indices: Vec<usize>,
+}
+
 /// Entry in the flattened navigation list.
 #[derive(Debug)]
 pub(crate) enum NavEntry {
-    Group {
+    Section {
+        section_idx: usize,
         name: String,
         expanded: bool,
     },
+    Widget {
+        widget_idx: usize,
+        name: String,
+        expanded: bool,
+        /// True when this widget lives inside a section (indented one extra level).
+        sectioned: bool,
+    },
     Variant {
-        group_idx: usize,
+        widget_idx: usize,
         ingredient_idx: usize,
+        /// True when the parent widget lives inside a section.
+        sectioned: bool,
     },
 }
 
-/// Flattened navigation tree built from grouped ingredients.
+/// Flattened navigation tree with optional section grouping.
+///
+/// When ingredients declare `section()`, the hierarchy is
+/// Section → Widget → Variant. Without sections, it collapses to
+/// Widget → Variant (backward compatible).
 pub(crate) struct NavTree {
-    /// Group names in display order.
-    pub groups: Vec<String>,
-    /// Ingredient indices grouped by group name.
-    pub group_items: Vec<Vec<usize>>,
-    /// Expansion state per group.
-    pub expanded: Vec<bool>,
+    sections: Vec<SectionData>,
+    section_expanded: Vec<bool>,
+
+    /// Widget names in discovery order.
+    pub widgets: Vec<String>,
+    /// Ingredient indices grouped by widget.
+    pub widget_items: Vec<Vec<usize>>,
+    /// Expansion state per widget.
+    pub widget_expanded: Vec<bool>,
+
+    /// Widget indices not assigned to any section.
+    orphan_widgets: Vec<usize>,
+
     /// Cursor position in the visible list.
     pub cursor: usize,
     /// First visible entry in the sidebar viewport.
@@ -30,67 +58,130 @@ pub(crate) struct NavTree {
 impl NavTree {
     /// Build the nav tree from ingredients matching a specific tab.
     ///
-    /// Ingredient indices reference the original global vec, so preview
-    /// lookups stay correct across tabs.
+    /// Sections are derived from `Ingredient::section()`. Widgets whose
+    /// ingredients return `None` appear as unsectioned below all sections.
     pub fn build(ingredients: &[Box<dyn Ingredient>], tab: &str) -> Self {
-        let mut groups: Vec<String> = Vec::new();
-        let mut group_items: Vec<Vec<usize>> = Vec::new();
+        let mut widgets: Vec<String> = Vec::new();
+        let mut widget_items: Vec<Vec<usize>> = Vec::new();
 
         for (i, ingredient) in ingredients.iter().enumerate() {
             if ingredient.tab() != tab {
                 continue;
             }
 
-            let group = ingredient.group().to_string();
-            if let Some(pos) = groups.iter().position(|g| *g == group) {
-                group_items[pos].push(i);
+            let widget = ingredient.group().to_string();
+
+            if let Some(pos) = widgets.iter().position(|w| *w == widget) {
+                widget_items[pos].push(i);
             } else {
-                groups.push(group);
-                group_items.push(vec![i]);
+                widgets.push(widget);
+                widget_items.push(vec![i]);
             }
         }
 
-        let expanded = vec![true; groups.len()];
+        let mut section_names: Vec<String> = Vec::new();
+        let mut section_widgets: Vec<Vec<usize>> = Vec::new();
+        let mut orphan_widgets: Vec<usize> = Vec::new();
 
-        let cursor = if groups.is_empty() {
-            0
-        } else {
-            1.min(Self::total_visible(&expanded, &group_items).saturating_sub(1))
+        for (wi, items) in widget_items.iter().enumerate() {
+            let section = items.first().and_then(|&ii| ingredients[ii].section());
+
+            if let Some(name) = section {
+                if let Some(si) = section_names.iter().position(|s| s == name) {
+                    section_widgets[si].push(wi);
+                } else {
+                    section_names.push(name.to_string());
+                    section_widgets.push(vec![wi]);
+                }
+            } else {
+                orphan_widgets.push(wi);
+            }
+        }
+
+        let section_data: Vec<SectionData> = section_names
+            .into_iter()
+            .zip(section_widgets)
+            .map(|(name, widget_indices)| SectionData {
+                name,
+                widget_indices,
+            })
+            .collect();
+
+        let widget_expanded = vec![true; widgets.len()];
+        let section_expanded = vec![true; section_data.len()];
+
+        let mut tree = Self {
+            sections: section_data,
+            section_expanded,
+            widgets,
+            widget_items,
+            widget_expanded,
+            orphan_widgets,
+            cursor: 0,
+            scroll_offset: 0,
         };
 
-        Self {
-            groups,
-            group_items,
-            expanded,
-            cursor,
-            scroll_offset: 0,
-        }
+        tree.cursor = tree
+            .visible()
+            .iter()
+            .position(|e| matches!(e, NavEntry::Variant { .. }))
+            .unwrap_or(0);
+
+        tree
     }
 
-    fn total_visible(expanded: &[bool], group_items: &[Vec<usize>]) -> usize {
-        expanded.iter().enumerate().fold(0, |acc, (gi, &exp)| {
-            acc + 1 + if exp { group_items[gi].len() } else { 0 }
-        })
+    fn has_sections(&self) -> bool {
+        !self.sections.is_empty()
     }
 
     /// Flatten visible entries based on expansion state.
     pub fn visible(&self) -> Vec<NavEntry> {
         let mut entries = Vec::new();
-        for (gi, group) in self.groups.iter().enumerate() {
-            entries.push(NavEntry::Group {
-                name: group.clone(),
-                expanded: self.expanded[gi],
-            });
-            if self.expanded[gi] {
-                for &ii in &self.group_items[gi] {
-                    entries.push(NavEntry::Variant {
-                        group_idx: gi,
-                        ingredient_idx: ii,
-                    });
+
+        if self.has_sections() {
+            for (si, section) in self.sections.iter().enumerate() {
+                entries.push(NavEntry::Section {
+                    section_idx: si,
+                    name: section.name.clone(),
+                    expanded: self.section_expanded[si],
+                });
+
+                if self.section_expanded[si] {
+                    for &wi in &section.widget_indices {
+                        self.push_widget_entries(&mut entries, wi, true);
+                    }
                 }
             }
+
+            for &wi in &self.orphan_widgets {
+                self.push_widget_entries(&mut entries, wi, false);
+            }
+        } else {
+            for wi in 0..self.widgets.len() {
+                self.push_widget_entries(&mut entries, wi, false);
+            }
         }
+
         entries
+    }
+
+    fn push_widget_entries(&self, entries: &mut Vec<NavEntry>, wi: usize, sectioned: bool) {
+        entries.push(NavEntry::Widget {
+            widget_idx: wi,
+            name: self.widgets[wi].clone(),
+            expanded: self.widget_expanded[wi],
+            sectioned,
+        });
+
+        if self.widget_expanded[wi] {
+            for &ii in &self.widget_items[wi] {
+                entries.push(NavEntry::Variant {
+                    widget_idx: wi,
+                    ingredient_idx: ii,
+                    sectioned,
+                });
+            }
+        }
     }
 
     /// The currently selected ingredient index, if cursor is on a variant.
@@ -102,8 +193,19 @@ impl NavTree {
         }
     }
 
+    /// All ingredient indices for the widget at cursor, if cursor is on a widget header.
+    pub fn selected_widget_items(&self) -> Option<(&str, &[usize])> {
+        let entries = self.visible();
+        match entries.get(self.cursor) {
+            Some(NavEntry::Widget { widget_idx, .. }) => {
+                Some((&self.widgets[*widget_idx], &self.widget_items[*widget_idx]))
+            }
+            _ => None,
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.groups.is_empty()
+        self.widgets.is_empty()
     }
 
     pub fn move_up(&mut self) {
@@ -125,45 +227,65 @@ impl NavTree {
         self.cursor = index.min(max);
     }
 
-    /// Toggle expand/collapse if cursor is on a group. Expand + enter first child if collapsing.
+    /// Toggle expand/collapse if cursor is on a section or widget.
     pub fn toggle_or_enter(&mut self) {
         let entries = self.visible();
-        if let Some(NavEntry::Group { .. }) = entries.get(self.cursor) {
-            self.toggle_at_cursor();
+        match entries.get(self.cursor) {
+            Some(NavEntry::Section { section_idx, .. }) => {
+                self.section_expanded[*section_idx] = !self.section_expanded[*section_idx];
+            }
+            Some(NavEntry::Widget { widget_idx, .. }) => {
+                self.widget_expanded[*widget_idx] = !self.widget_expanded[*widget_idx];
+            }
+            _ => {}
         }
     }
 
-    /// Expand the group at cursor (right arrow).
+    /// Expand the node at cursor (right arrow).
     pub fn expand(&mut self) {
-        if let Some(gi) = self.group_at_cursor()
-            && !self.expanded[gi]
-        {
-            self.expanded[gi] = true;
-        }
-    }
-
-    /// Collapse the group at cursor, or the parent group if on a variant (left arrow).
-    pub fn collapse(&mut self) {
         let entries = self.visible();
         match entries.get(self.cursor) {
-            Some(NavEntry::Group { .. }) => {
-                if let Some(gi) = self.group_at_cursor() {
-                    self.expanded[gi] = false;
+            Some(NavEntry::Section { section_idx, .. }) if !self.section_expanded[*section_idx] => {
+                self.section_expanded[*section_idx] = true;
+            }
+            Some(NavEntry::Widget { widget_idx, .. }) if !self.widget_expanded[*widget_idx] => {
+                self.widget_expanded[*widget_idx] = true;
+            }
+            _ => {}
+        }
+    }
+
+    /// Collapse the node at cursor, or jump to parent (left arrow).
+    ///
+    /// - Section → collapse it
+    /// - Expanded widget → collapse it
+    /// - Collapsed widget inside a section → collapse parent section, jump there
+    /// - Variant → collapse parent widget, jump there
+    pub fn collapse(&mut self) {
+        let entries = self.visible();
+
+        match entries.get(self.cursor) {
+            Some(NavEntry::Section { section_idx, .. }) => {
+                self.section_expanded[*section_idx] = false;
+            }
+
+            Some(NavEntry::Widget { widget_idx, .. }) => {
+                let wi = *widget_idx;
+
+                if self.widget_expanded[wi] {
+                    self.widget_expanded[wi] = false;
+                } else if let Some(si) = self.section_of_widget(wi) {
+                    self.section_expanded[si] = false;
+                    self.cursor = self.position_of_section(si);
                 }
             }
-            Some(NavEntry::Variant { group_idx, .. }) => {
-                let gi = *group_idx;
-                self.expanded[gi] = false;
-                // Move cursor to the group header
-                let mut pos = 0;
-                for g in 0..gi {
-                    pos += 1;
-                    if self.expanded[g] {
-                        pos += self.group_items[g].len();
-                    }
-                }
-                self.cursor = pos;
+
+            Some(NavEntry::Variant { widget_idx, .. }) => {
+                let wi = *widget_idx;
+                self.widget_expanded[wi] = false;
+                self.cursor = self.position_of_widget(wi);
             }
+
             None => {}
         }
     }
@@ -173,7 +295,7 @@ impl NavTree {
         if viewport_height == 0 {
             return;
         }
-        // Clamp offset so we don't show blank space past the end.
+
         let total = self.visible().len();
         let max_offset = total.saturating_sub(viewport_height);
         self.scroll_offset = self.scroll_offset.min(max_offset);
@@ -185,18 +307,86 @@ impl NavTree {
         }
     }
 
-    fn toggle_at_cursor(&mut self) {
-        if let Some(gi) = self.group_at_cursor() {
-            self.expanded[gi] = !self.expanded[gi];
-        }
+    /// Which section (if any) contains this widget.
+    fn section_of_widget(&self, widget_idx: usize) -> Option<usize> {
+        self.sections
+            .iter()
+            .position(|s| s.widget_indices.contains(&widget_idx))
     }
 
-    fn group_at_cursor(&self) -> Option<usize> {
-        let entries = self.visible();
-        match entries.get(self.cursor) {
-            Some(NavEntry::Group { name, .. }) => self.groups.iter().position(|g| g == name),
-            _ => None,
+    /// Visible-list position of a section header.
+    fn position_of_section(&self, target_si: usize) -> usize {
+        let mut pos = 0;
+
+        for (si, section) in self.sections.iter().enumerate() {
+            if si == target_si {
+                return pos;
+            }
+
+            pos += 1;
+
+            if self.section_expanded[si] {
+                for &wi in &section.widget_indices {
+                    pos += 1;
+                    if self.widget_expanded[wi] {
+                        pos += self.widget_items[wi].len();
+                    }
+                }
+            }
         }
+
+        pos
+    }
+
+    /// Visible-list position of a widget header.
+    fn position_of_widget(&self, target_wi: usize) -> usize {
+        let mut pos = 0;
+
+        if self.has_sections() {
+            for (si, section) in self.sections.iter().enumerate() {
+                pos += 1;
+
+                if self.section_expanded[si] {
+                    for &wi in &section.widget_indices {
+                        if wi == target_wi {
+                            return pos;
+                        }
+
+                        pos += 1;
+
+                        if self.widget_expanded[wi] {
+                            pos += self.widget_items[wi].len();
+                        }
+                    }
+                }
+            }
+
+            for &wi in &self.orphan_widgets {
+                if wi == target_wi {
+                    return pos;
+                }
+
+                pos += 1;
+
+                if self.widget_expanded[wi] {
+                    pos += self.widget_items[wi].len();
+                }
+            }
+        } else {
+            for wi in 0..self.widgets.len() {
+                if wi == target_wi {
+                    return pos;
+                }
+
+                pos += 1;
+
+                if self.widget_expanded[wi] {
+                    pos += self.widget_items[wi].len();
+                }
+            }
+        }
+
+        pos
     }
 }
 
@@ -207,6 +397,7 @@ mod tests {
 
     struct Stub {
         tab: &'static str,
+        section: Option<&'static str>,
         group: &'static str,
         name: &'static str,
     }
@@ -215,6 +406,7 @@ mod tests {
         fn new(group: &'static str, name: &'static str) -> Self {
             Self {
                 tab: "Widgets",
+                section: None,
                 group,
                 name,
             }
@@ -224,11 +416,19 @@ mod tests {
             self.tab = tab;
             self
         }
+
+        fn section(mut self, section: &'static str) -> Self {
+            self.section = Some(section);
+            self
+        }
     }
 
     impl Ingredient for Stub {
         fn tab(&self) -> &str {
             self.tab
+        }
+        fn section(&self) -> Option<&str> {
+            self.section
         }
         fn group(&self) -> &str {
             self.group
@@ -259,13 +459,13 @@ mod tests {
     // -- build ----------------------------------------------------------------
 
     #[test]
-    fn build_groups_by_group_name() {
+    fn build_groups_by_widget_name() {
         let items = sample_ingredients();
         let nav = NavTree::build(&items, "Widgets");
 
-        assert_eq!(nav.groups, vec!["Table", "Chart"]);
-        assert_eq!(nav.group_items[0], vec![0, 1]);
-        assert_eq!(nav.group_items[1], vec![2, 3, 4]);
+        assert_eq!(nav.widgets, vec!["Table", "Chart"]);
+        assert_eq!(nav.widget_items[0], vec![0, 1]);
+        assert_eq!(nav.widget_items[1], vec![2, 3, 4]);
     }
 
     #[test]
@@ -276,8 +476,8 @@ mod tests {
         ];
         let nav = NavTree::build(&items, "Widgets");
 
-        assert_eq!(nav.groups, vec!["Table"]);
-        assert_eq!(nav.group_items[0], vec![0]);
+        assert_eq!(nav.widgets, vec!["Table"]);
+        assert_eq!(nav.widget_items[0], vec![0]);
     }
 
     #[test]
@@ -294,7 +494,6 @@ mod tests {
         let items = sample_ingredients();
         let nav = NavTree::build(&items, "Widgets");
 
-        // Cursor at 1 = first variant under first group
         assert_eq!(nav.cursor, 1);
         assert_eq!(nav.selected_ingredient(), Some(0));
     }
@@ -307,9 +506,11 @@ mod tests {
         let nav = NavTree::build(&items, "Widgets");
         let vis = nav.visible();
 
-        // Table(group) + 2 variants + Chart(group) + 3 variants = 7
+        // Table(widget) + 2 variants + Chart(widget) + 3 variants = 7
         assert_eq!(vis.len(), 7);
-        assert!(matches!(vis[0], NavEntry::Group { ref name, expanded: true } if name == "Table"));
+        assert!(
+            matches!(vis[0], NavEntry::Widget { ref name, expanded: true, .. } if name == "Table")
+        );
         assert!(matches!(
             vis[1],
             NavEntry::Variant {
@@ -324,26 +525,28 @@ mod tests {
                 ..
             }
         ));
-        assert!(matches!(vis[3], NavEntry::Group { ref name, expanded: true } if name == "Chart"));
+        assert!(
+            matches!(vis[3], NavEntry::Widget { ref name, expanded: true, .. } if name == "Chart")
+        );
     }
 
     #[test]
     fn visible_collapsed_hides_children() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
-        nav.expanded[0] = false; // collapse Table
+        nav.widget_expanded[0] = false;
 
         let vis = nav.visible();
-        // Table(group, collapsed) + Chart(group) + 3 variants = 5
+        // Table(collapsed) + Chart(widget) + 3 variants = 5
         assert_eq!(vis.len(), 5);
         assert!(matches!(
             vis[0],
-            NavEntry::Group {
+            NavEntry::Widget {
                 expanded: false,
                 ..
             }
         ));
-        assert!(matches!(vis[1], NavEntry::Group { ref name, .. } if name == "Chart"));
+        assert!(matches!(vis[1], NavEntry::Widget { ref name, .. } if name == "Chart"));
     }
 
     // -- navigation -----------------------------------------------------------
@@ -357,11 +560,30 @@ mod tests {
     }
 
     #[test]
-    fn selected_ingredient_on_group_returns_none() {
+    fn selected_ingredient_on_widget_returns_none() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
-        nav.cursor = 0; // group header
+        nav.cursor = 0;
         assert_eq!(nav.selected_ingredient(), None);
+    }
+
+    #[test]
+    fn selected_widget_items_on_widget_header() {
+        let items = sample_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 0; // Table widget header
+
+        let (name, indices) = nav.selected_widget_items().unwrap();
+        assert_eq!(name, "Table");
+        assert_eq!(indices, &[0, 1]);
+    }
+
+    #[test]
+    fn selected_widget_items_on_variant_returns_none() {
+        let items = sample_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+        // cursor starts on first variant
+        assert!(nav.selected_widget_items().is_none());
     }
 
     #[test]
@@ -375,58 +597,58 @@ mod tests {
     // -- expand / collapse ----------------------------------------------------
 
     #[test]
-    fn expand_on_collapsed_group() {
+    fn expand_on_collapsed_widget() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
-        nav.expanded[0] = false;
+        nav.widget_expanded[0] = false;
         nav.cursor = 0;
         nav.expand();
-        assert!(nav.expanded[0]);
+        assert!(nav.widget_expanded[0]);
     }
 
     #[test]
     fn collapse_from_variant_jumps_to_parent() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
-        nav.cursor = 1; // first variant of Table
+        nav.cursor = 1;
         nav.collapse();
 
-        assert!(!nav.expanded[0]); // Table collapsed
-        assert_eq!(nav.cursor, 0); // cursor on Table group
+        assert!(!nav.widget_expanded[0]);
+        assert_eq!(nav.cursor, 0);
     }
 
     #[test]
-    fn collapse_from_second_group_variant() {
+    fn collapse_from_second_widget_variant() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
         nav.cursor = 5; // Chart > "Bar" (second variant)
         nav.collapse();
 
-        assert!(!nav.expanded[1]); // Chart collapsed
+        assert!(!nav.widget_expanded[1]);
         // Table(expanded) + 2 variants = 3; Chart at position 3
         assert_eq!(nav.cursor, 3);
     }
 
     #[test]
-    fn toggle_or_enter_on_group_toggles() {
+    fn toggle_or_enter_on_widget_toggles() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
         nav.cursor = 0;
-        assert!(nav.expanded[0]);
+        assert!(nav.widget_expanded[0]);
         nav.toggle_or_enter();
-        assert!(!nav.expanded[0]);
+        assert!(!nav.widget_expanded[0]);
         nav.toggle_or_enter();
-        assert!(nav.expanded[0]);
+        assert!(nav.widget_expanded[0]);
     }
 
     #[test]
     fn toggle_or_enter_on_variant_is_noop() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
-        nav.cursor = 1; // variant
-        let expanded_before = nav.expanded.clone();
+        nav.cursor = 1;
+        let expanded_before = nav.widget_expanded.clone();
         nav.toggle_or_enter();
-        assert_eq!(nav.expanded, expanded_before);
+        assert_eq!(nav.widget_expanded, expanded_before);
     }
 
     // -- scroll ---------------------------------------------------------------
@@ -435,10 +657,9 @@ mod tests {
     fn scroll_into_view_scrolls_down() {
         let items = sample_ingredients();
         let mut nav = NavTree::build(&items, "Widgets");
-        nav.cursor = 6; // last entry
+        nav.cursor = 6;
         nav.scroll_offset = 0;
         nav.scroll_into_view(3);
-        // cursor(6) should be visible: offset = 6 - 3 + 1 = 4
         assert_eq!(nav.scroll_offset, 4);
     }
 
@@ -458,7 +679,6 @@ mod tests {
         let mut nav = NavTree::build(&items, "Widgets");
         nav.scroll_offset = 100;
         nav.scroll_into_view(3);
-        // max_offset = 7 - 3 = 4
         assert!(nav.scroll_offset <= 4);
     }
 
@@ -469,5 +689,186 @@ mod tests {
         let before = nav.scroll_offset;
         nav.scroll_into_view(0);
         assert_eq!(nav.scroll_offset, before);
+    }
+
+    // -- sections -------------------------------------------------------------
+
+    fn sectioned_ingredients() -> Vec<Box<dyn Ingredient>> {
+        vec![
+            boxed(Stub::new("Block", "Default").section("Core")),
+            boxed(Stub::new("Paragraph", "Default").section("Core")),
+            boxed(Stub::new("Pie Chart", "Default").section("Charts")),
+            boxed(Stub::new("Pie Chart", "Exploded").section("Charts")),
+            boxed(Stub::new("Banner", "Default")),
+        ]
+    }
+
+    #[test]
+    fn sections_build_assigns_widgets() {
+        let items = sectioned_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+
+        assert_eq!(nav.sections.len(), 2);
+        assert_eq!(nav.sections[0].name, "Core");
+        assert_eq!(nav.sections[0].widget_indices, vec![0, 1]);
+        assert_eq!(nav.sections[1].name, "Charts");
+        assert_eq!(nav.sections[1].widget_indices, vec![2]);
+        assert_eq!(nav.orphan_widgets, vec![3]);
+    }
+
+    #[test]
+    fn sections_visible_three_levels() {
+        let items = sectioned_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+        let vis = nav.visible();
+
+        // Core(section) + Block(widget) + Default(variant)
+        //   + Paragraph(widget) + Default(variant)
+        // Charts(section) + Pie Chart(widget) + Default + Exploded
+        // Banner(orphan widget) + Default
+        assert_eq!(vis.len(), 11);
+        assert!(matches!(vis[0], NavEntry::Section { ref name, .. } if name == "Core"));
+        assert!(matches!(vis[1], NavEntry::Widget { ref name, .. } if name == "Block"));
+        assert!(matches!(
+            vis[2],
+            NavEntry::Variant {
+                ingredient_idx: 0,
+                ..
+            }
+        ));
+        assert!(matches!(vis[3], NavEntry::Widget { ref name, .. } if name == "Paragraph"));
+        assert!(matches!(
+            vis[4],
+            NavEntry::Variant {
+                ingredient_idx: 1,
+                ..
+            }
+        ));
+        assert!(matches!(vis[5], NavEntry::Section { ref name, .. } if name == "Charts"));
+        assert!(matches!(vis[6], NavEntry::Widget { ref name, .. } if name == "Pie Chart"));
+        assert!(matches!(
+            vis[7],
+            NavEntry::Variant {
+                ingredient_idx: 2,
+                ..
+            }
+        ));
+        assert!(matches!(
+            vis[8],
+            NavEntry::Variant {
+                ingredient_idx: 3,
+                ..
+            }
+        ));
+        assert!(matches!(vis[9], NavEntry::Widget { ref name, .. } if name == "Banner"));
+        assert!(matches!(
+            vis[10],
+            NavEntry::Variant {
+                ingredient_idx: 4,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn sections_cursor_starts_on_first_variant() {
+        let items = sectioned_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+
+        assert_eq!(nav.cursor, 2);
+        assert_eq!(nav.selected_ingredient(), Some(0));
+    }
+
+    #[test]
+    fn sections_collapse_section_hides_children() {
+        let items = sectioned_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.section_expanded[0] = false;
+        let vis = nav.visible();
+
+        // Core(collapsed) + Charts(section) + Pie Chart + 2 variants + Banner + Default = 7
+        assert_eq!(vis.len(), 7);
+        assert!(matches!(
+            vis[0],
+            NavEntry::Section {
+                expanded: false,
+                ..
+            }
+        ));
+        assert!(matches!(vis[1], NavEntry::Section { ref name, .. } if name == "Charts"));
+    }
+
+    #[test]
+    fn sections_collapse_from_variant_jumps_to_widget() {
+        let items = sectioned_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 2; // Core > Block > Default
+        nav.collapse();
+
+        assert!(!nav.widget_expanded[0]);
+        assert_eq!(nav.cursor, 1);
+    }
+
+    #[test]
+    fn sections_collapse_collapsed_widget_jumps_to_section() {
+        let items = sectioned_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+
+        nav.widget_expanded[0] = false;
+        nav.cursor = 1; // Block widget header (collapsed)
+        nav.collapse();
+
+        assert!(!nav.section_expanded[0]);
+        assert_eq!(nav.cursor, 0);
+    }
+
+    #[test]
+    fn sections_expand_collapsed_section() {
+        let items = sectioned_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.section_expanded[0] = false;
+        nav.cursor = 0;
+        nav.expand();
+
+        assert!(nav.section_expanded[0]);
+    }
+
+    #[test]
+    fn sections_toggle_section() {
+        let items = sectioned_ingredients();
+        let mut nav = NavTree::build(&items, "Widgets");
+        nav.cursor = 0;
+        assert!(nav.section_expanded[0]);
+        nav.toggle_or_enter();
+        assert!(!nav.section_expanded[0]);
+        nav.toggle_or_enter();
+        assert!(nav.section_expanded[0]);
+    }
+
+    #[test]
+    fn sections_orphan_widgets_appear_below() {
+        let items = sectioned_ingredients();
+        let nav = NavTree::build(&items, "Widgets");
+        let vis = nav.visible();
+
+        let banner_pos = vis
+            .iter()
+            .position(|e| matches!(e, NavEntry::Widget { name, .. } if name == "Banner"))
+            .unwrap();
+        let last_section_pos = vis
+            .iter()
+            .rposition(|e| matches!(e, NavEntry::Section { .. }))
+            .unwrap();
+
+        assert!(banner_pos > last_section_pos);
+    }
+
+    #[test]
+    fn sections_no_sections_when_none_declared() {
+        let items = vec![boxed(Stub::new("Banner", "Default"))];
+        let nav = NavTree::build(&items, "Widgets");
+
+        assert!(nav.sections.is_empty());
+        assert_eq!(nav.orphan_widgets, vec![0]);
     }
 }

@@ -56,6 +56,10 @@ fn render_line_gauge(label: &str, ratio: f64, area: Rect, buf: &mut Buffer) {
 struct LineGaugeLow;
 
 impl Ingredient for LineGaugeLow {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Line Gauge"
     }
@@ -76,6 +80,10 @@ impl Ingredient for LineGaugeLow {
 struct LineGaugeMedium;
 
 impl Ingredient for LineGaugeMedium {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Line Gauge"
     }
@@ -96,6 +104,10 @@ impl Ingredient for LineGaugeMedium {
 struct LineGaugeHigh;
 
 impl Ingredient for LineGaugeHigh {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Line Gauge"
     }

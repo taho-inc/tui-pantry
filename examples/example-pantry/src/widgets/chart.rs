@@ -48,6 +48,10 @@ const CPU_SYSTEM: [(f64, f64); 10] = [
 ];
 
 impl Ingredient for ChartLine {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Chart"
     }
@@ -134,6 +138,10 @@ const SCATTER_B: [(f64, f64); 10] = [
 ];
 
 impl Ingredient for ChartScatter {
+    fn section(&self) -> Option<&str> {
+        Some("Charts")
+    }
+
     fn group(&self) -> &str {
         "Chart"
     }
